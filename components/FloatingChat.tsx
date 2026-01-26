@@ -6,7 +6,9 @@ import {
     ChatBubbleLeftRightIcon,
     XMarkIcon,
     PaperAirplaneIcon,
-    SparklesIcon
+    SparklesIcon,
+    ArrowsPointingOutIcon,
+    ArrowsPointingInIcon
 } from '@heroicons/react/24/solid';
 import { marked } from 'marked';
 
@@ -17,8 +19,8 @@ interface Message {
     timestamp: Date;
 }
 
-export default function FloatingChat() {
-    const [isOpen, setIsOpen] = useState(false);
+export default function FloatingChat({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+    const [isExpanded, setIsExpanded] = useState(false);
     const [query, setQuery] = useState('');
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -89,54 +91,90 @@ export default function FloatingChat() {
     };
 
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end pointer-events-none">
-
+        <div className="fixed bottom-8 right-8 z-100 flex flex-col items-end pointer-events-none font-sans">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
-                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                        className="pointer-events-auto bg-gray-900/95 backdrop-blur-xl border border-gray-700/50 w-[380px] h-[500px] mb-4 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+                        initial={{ opacity: 0, scale: 0.95, y: 20, filter: 'blur(10px)' }}
+                        animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20, filter: 'blur(10px)' }}
+                        transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }} // Smooth cubic-bezier
+                        className={`pointer-events-auto mb-6 flex flex-col overflow-hidden origin-bottom-right transition-all duration-500 ease-spring ${isExpanded ? 'w-[550px] h-[550px]' : 'w-[340px] h-[250px]'}`}
+                        style={{
+                            background: 'linear-gradient(180deg, rgba(15, 15, 25, 0.0) 0%, rgba(15, 15, 25, 0.85) 40%, rgba(15, 15, 25, 0.95) 100%)', // Gradient BG to blend top
+                            backdropFilter: 'blur(12px) saturate(180%)',
+                            boxShadow: '0 20px 50px -10px rgba(0, 0, 0, 0.5)',
+                            borderRadius: '32px',
+                        }}
                     >
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-gray-700/50 bg-linear-to-r from-blue-600/20 to-purple-600/20">
-                            <div className="flex items-center gap-2 text-white font-medium">
-                                <SparklesIcon className="w-5 h-5 text-blue-400" />
-                                <span>AI Assistant</span>
+                        {/* Header (Minimal/Transparent) */}
+                        <div className="flex items-center justify-between px-10 pt-5 pb-2 shrink-0 group/header">
+                            <div className="flex items-center gap-3 transition-opacity duration-500">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold">AI Context</span>
+                                </div>
                             </div>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="p-1 hover:bg-white/10 rounded-lg transition-colors text-gray-400 hover:text-white"
-                            >
-                                <XMarkIcon className="w-5 h-5" />
-                            </button>
+                            <div className="flex items-center gap-2 transition-opacity duration-500">
+                                <button
+                                    onClick={() => setIsExpanded(!isExpanded)}
+                                    className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/20 hover:text-white"
+                                    title={isExpanded ? "Collapse" : "Expand"}
+                                >
+                                    {isExpanded ? (
+                                        <ArrowsPointingInIcon className="w-4 h-4" />
+                                    ) : (
+                                        <ArrowsPointingOutIcon className="w-4 h-4" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => onClose()}
+                                    className="p-2 hover:bg-white/5 rounded-full transition-colors text-white/20 hover:text-white"
+                                >
+                                    <XMarkIcon className="w-5 h-5" />
+                                </button>
+                            </div>
                         </div>
 
-                        {/* Messages */}
-                        <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                        {/* Messages Area - Faded Top */}
+                        <div
+                            className="flex-1 overflow-y-auto px-6 py-2 space-y-6 custom-scrollbar scroll-smooth"
+                            style={{
+                                maskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)',
+                                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 30%)'
+                            }}
+                        >
+                            {/* Spacer to push content down if few messages */}
+                            <div className="h-4" />
+
                             {messages.map((msg) => (
-                                <div
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
                                     key={msg.id}
                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${msg.role === 'user'
-                                            ? 'bg-blue-600 text-white rounded-br-none'
-                                            : 'bg-gray-800 text-gray-100 border border-gray-700 rounded-bl-none'
+                                        className={`max-w-[90%] px-5 py-3.5 text-sm leading-6 tracking-wide shadow-sm ${msg.role === 'user'
+                                            ? 'bg-[#1a1a1a]/80 text-white backdrop-blur-md rounded-[24px] rounded-br-sm'
+                                            : 'text-gray-100/90 rounded-[24px] rounded-bl-sm'
                                             }`}
                                     >
-                                        <div dangerouslySetInnerHTML={{ __html: marked(msg.content) }} />
+                                        <div
+                                            className="prose prose-invert prose-p:my-1 prose-pre:bg-[#000]/30 prose-pre:backdrop-blur-md prose-pre:border-none max-w-none"
+                                            dangerouslySetInnerHTML={{ __html: marked(msg.content) as string }}
+                                        />
                                     </div>
-                                </div>
+                                </motion.div>
                             ))}
+
                             {isTyping && (
                                 <div className="flex justify-start">
-                                    <div className="bg-gray-800 border border-gray-700 rounded-2xl rounded-bl-none px-4 py-3">
-                                        <div className="flex gap-1.5">
-                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" />
-                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-100" />
-                                            <span className="w-2 h-2 bg-gray-500 rounded-full animate-bounce delay-200" />
+                                    <div className="px-5 py-4">
+                                        <div className="flex gap-1.5 items-center">
+                                            <span className="text-[10px] font-bold text-[#FF6D5A] uppercase tracking-widest mr-2 animate-pulse">Computing</span>
+                                            <span className="w-1 h-1 bg-[#FF6D5A] rounded-lg animate-bounce" />
+                                            <span className="w-1 h-1 bg-[#FF6D5A] rounded-lg animate-bounce delay-100" />
+                                            <span className="w-1 h-1 bg-[#FF6D5A] rounded-lg animate-bounce delay-200" />
                                         </div>
                                     </div>
                                 </div>
@@ -144,20 +182,21 @@ export default function FloatingChat() {
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input */}
-                        <form onSubmit={handleSubmit} className="p-4 border-t border-gray-700/50 bg-gray-800/30">
-                            <div className="relative flex items-center">
+                        {/* Input Area - Integrated */}
+                        <form onSubmit={handleSubmit} className="px-14 pb-6 pt-2">
+                            <div className="relative flex items-center group">
+                                <div className="absolute inset-0 bg-linear-to-r from-[#FF6D5A]/10 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 rounded-lg pointer-events-none" />
                                 <input
                                     type="text"
                                     value={query}
                                     onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="Ask about complexity, errors..."
-                                    className="w-full bg-gray-900 border border-gray-700/50 text-white rounded-xl pl-4 pr-12 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-inner"
+                                    placeholder="Ask code-craft..."
+                                    className="w-full bg-[#1a1a1a] border border-white/10 text-white placeholder-white/20 rounded-3xl pl-6 pr-14 py-5 focus:outline-none focus:bg-[#222] transition-all font-medium text-[14px] backdrop-blur-sm shadow-inner"
                                 />
                                 <button
                                     type="submit"
                                     disabled={!query.trim() || isTyping}
-                                    className="absolute right-2 p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="absolute right-2 p-2 bg-white/5 hover:bg-[#FF6D5A] text-white/40 hover:text-white rounded-full transition-all disabled:opacity-0 active:scale-95"
                                 >
                                     <PaperAirplaneIcon className="w-4 h-4" />
                                 </button>
@@ -167,19 +206,6 @@ export default function FloatingChat() {
                 )}
             </AnimatePresence>
 
-            {/* Floating Button */}
-            <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setIsOpen(!isOpen)}
-                className="pointer-events-auto p-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full shadow-lg shadow-blue-500/30 transition-shadow flex items-center justify-center"
-            >
-                {isOpen ? (
-                    <XMarkIcon className="w-7 h-7" />
-                ) : (
-                    <ChatBubbleLeftRightIcon className="w-7 h-7" />
-                )}
-            </motion.button>
         </div>
     );
 }

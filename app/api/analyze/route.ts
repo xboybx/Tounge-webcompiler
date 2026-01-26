@@ -6,11 +6,11 @@ export async function POST(req: Request) {
         const { code, language } = await req.json();
         console.log(`[Analyze API] 🚀 Request received for ${language}. Code length: ${code?.length}`);
 
-        if (!process.env.OPENROUTER_API_KEY) {
+        if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
             return NextResponse.json({
                 time: "Key Missing",
                 space: "-",
-                explanation: "Please add your OPENROUTER_API_KEY to use AI Analysis.",
+                explanation: "Please add your GEMINI_API_KEY or OPENROUTER_API_KEY to use AI Analysis.",
                 suggestions: ["Configuration Required"]
             });
         }

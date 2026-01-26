@@ -1,3 +1,4 @@
+import { GoogleGenAI } from "@google/genai";
 import OpenAI from 'openai';
 
 // Initialize OpenRouter Client
@@ -50,19 +51,56 @@ const CHAT_SYSTEM_PROMPT = `You are Code Craft AI assistant. Provide concise, ac
 /**
  * Robust AI Service using OpenRouter with Model Fallback.
  */
-export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string): Promise<string> {
-    if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error("MISSING_API_KEY");
-    }
+// Initialize Gemini Client (Official SDK)
+const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({
+    apiKey: process.env.GEMINI_API_KEY
+}) : null;
 
+/**
+ * Robust AI Service:
+ * 1. 🚀 Priority: Gemini Pro (User's Personal Key) - Reliable, Fast, High Limits.
+ * 2. 🛡️ Fallback: OpenRouter (Community Free Tier) - Shared limits, might be 429'd.
+ */
+export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string): Promise<string> {
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
     let userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
+
+    // --- 1. Try Gemini (If Configured) ---
+    if (gemini) {
+        try {
+            console.log(`[AI Service] 💎 Using Gemini Native SDK...`);
+
+            // Combine prompts for the simple GenerateContent API
+            const combinedPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
+
+            const response = await gemini.models.generateContent({
+                model: "gemini-2.0-flash-exp",
+                contents: combinedPrompt,
+            });
+
+            // Handle potential variation in SDK response structure
+            const text = response.text;
+
+            if (text) {
+                console.log(`[AI Service] ✅ Gemini Success`);
+                return text;
+            }
+        } catch (error: any) {
+            console.error(`[AI Service] ⚠️ Gemini Failed (Falling back to OpenRouter): ${error.message}`);
+        }
+    }
+
+    // --- 2. Fallback to OpenRouter ---
+    if (!process.env.OPENROUTER_API_KEY) {
+        // If neither key is present, we must fail
+        if (!gemini) throw new Error("MISSING_API_KEYS: Please set GEMINI_API_KEY or OPENROUTER_API_KEY");
+    }
 
     let lastErrorMessage = "All models returned empty response";
 
     for (const model of FREE_MODELS) {
         try {
-            console.log(`[AI Service] 🤖 Attempting: ${model}...`);
+            console.log(`[AI Service] 🤖 Attempting OpenRouter: ${model}...`);
             const completion = await openRouter.chat.completions.create({
                 model: model,
                 messages: [
@@ -82,12 +120,9 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
             lastErrorMessage = apiError;
 
             console.error(`[AI Service] ❌ ${model} Failed: ${apiError}`);
-
-            // If it's a 429, we definitely want to try the NEXT model in the list
-            // which likely uses a different backend provider.
+            // Continue to next model...
         }
     }
 
-    // Instead of a generic error, we throw the actual last error we got from the API
     throw new Error(lastErrorMessage);
 }

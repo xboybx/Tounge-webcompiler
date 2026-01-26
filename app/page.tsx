@@ -7,6 +7,7 @@ import {
   Download,
   Upload,
   Save,
+  PanelRightClose,
   Settings,
   Menu,
   ChevronLeft,
@@ -18,12 +19,15 @@ import {
   Layout,
   Columns,
   Rows,
-  X
+  X,
+  Brain,
+  Sparkles,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import SnippetsPanel from '@/components/SnippetsPanel';
 import OutputPanel from '@/components/OutputPanel';
+import FloatingChat from '@/components/FloatingChat';
 import { h2 } from 'framer-motion/client';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), { ssr: false });
@@ -126,6 +130,8 @@ export default function Home() {
     description: '',
     tags: '',
   });
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   const currentLanguage = LANGUAGES.find(l => l.id === language);
 
@@ -346,12 +352,12 @@ export default function Home() {
       {/* Workspace */}
       <main className="flex flex-1 overflow-hidden">
         {/* Sidebar Toggle Bar */}
-        <div className="w-16 flex flex-col items-center border-r border-[#222] bg-black shrink-0">
+        <div className="w-16 flex items-end justify-center flex-wrap pt-20 border-r border-[#222] bg-black shrink-0">
           <button
             onClick={() => setShowSnippets(!showSnippets)}
-            className={`p-3 rounded-xl transition-all mt-10 active:scale-90 border-2 ${showSnippets ? 'bg-[#222] border-white text-white shadow-[0_0_25px_rgba(255,255,255,0.15)]' : 'bg-transparent border-transparent text-white/40 hover:text-white hover:bg-[#111]'}`}
+            className={`p-3 rounded-xl transition-all active:scale-90 border-2 ${showSnippets ? 'bg-[#222] border-white text-white shadow-[0_0_25px_rgba(255,255,255,0.15)]' : 'bg-transparent border-transparent text-white/40 hover:text-white hover:bg-[#111]'}`}
           >
-            <Layout size={28} />
+            <PanelRightClose size={20} />
           </button>
         </div>
 
@@ -485,6 +491,8 @@ export default function Home() {
         )}
       </AnimatePresence>
 
+      <FloatingChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+
       {/* Minimal Footer */}
       <footer className="h-12 flex items-center justify-between border-t border-[#222] bg-black px-6 text-xs shrink-0">
         <div className="flex items-center gap-8 text-white font-bold">
@@ -496,11 +504,18 @@ export default function Home() {
           <span className="uppercase tracking-widest text-[#888]">{currentLanguage?.name}</span>
         </div>
 
-        <div className="flex items-center gap-8 text-white font-bold uppercase tracking-widest">
-          {executionTime !== null && (
-            <span className="text-[#888]">Runtime: {executionTime}ms</span>
-          )}
-          <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">CTRL + ENTER</span>
+        <div className="flex items-center gap-2 text-white font-bold uppercase tracking-widest">
+
+
+          <button
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#FFD700] text-[#FFD700] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
+          >
+            <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#FFD700]" : ""} />
+            <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4">Ask</span>
+          </button>
+
+          <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">TOUNGE</span>
         </div>
       </footer>
     </div>

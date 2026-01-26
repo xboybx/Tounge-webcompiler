@@ -1,6 +1,6 @@
 'use client';
 
-import { Terminal, AlertCircle, Cpu, Clock, Layout, Columns, Rows, CheckCircle2, Sparkles, AlertTriangle, Lightbulb } from 'lucide-react';
+import { Terminal, AlertCircle, Cpu, Clock, Sparkles, Columns, Rows, CheckCircle2, ChartLine, AlertTriangle, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 
@@ -37,12 +37,7 @@ export default function OutputPanel({
     const [aiError, setAiError] = useState(false);
     const [aiMode, setAiMode] = useState(true); // Default ON
 
-    const activeStats = (aiMode && aiComplexity) ? {
-        time: aiComplexity.time,
-        space: aiComplexity.space,
-        maintainability: complexity?.maintainability,
-        cyclomatic: complexity?.cyclomatic
-    } : complexity;
+    const activeStats = aiMode ? aiComplexity : complexity;
 
     useEffect(() => {
         // Reset state when a new run starts
@@ -55,7 +50,7 @@ export default function OutputPanel({
         if (!isRunning && codeContext && aiMode && !aiComplexity && output) {
             handleDeepAnalyze();
         }
-    }, [isRunning, codeContext, aiMode, output]);
+    }, [isRunning]);
 
     const handleDeepAnalyze = async () => {
         if (isAnalyzing || !codeContext) return;
@@ -79,9 +74,7 @@ export default function OutputPanel({
     };
 
     const toggleAiMode = () => {
-        const newMode = !aiMode;
-        setAiMode(newMode);
-        if (newMode && !aiComplexity) handleDeepAnalyze();
+        setAiMode(!aiMode);
     };
 
     return (
@@ -105,64 +98,34 @@ export default function OutputPanel({
                         ) : (
                             <Columns size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
                         )}
-                        <span className="text-[9px] font-black uppercase tracking-widest hidden lg:block">Layout</span>
                     </button>
                 </div>
 
                 <div className="flex items-center gap-6">
-                    <div className="flex items-center gap-6 mr-2">
-                        {/* AI Trigger Button - Always Visible */}
-                        <button
-                            onClick={toggleAiMode}
-                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${aiMode
-                                ? (isAnalyzing ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-purple-500/5 text-purple-400 border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)]')
-                                : 'text-white/20 hover:text-white border-transparent'
-                                }`}
-                            title={aiMode ? "AI Deep Analysis Enabled" : "Enable AI Deep Analysis"}
-                        >
-                            {isAnalyzing ? (
-                                <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                            ) : aiError ? (
-                                <AlertTriangle size={14} strokeWidth={3} className="text-red-400" />
-                            ) : (
-                                <div className="flex items-center gap-2">
-                                    <Sparkles size={14} strokeWidth={3} className={aiMode ? "fill-purple-400" : ""} />
-                                    <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">
-                                        {aiMode ? 'AI Mode' : 'Local'}
-                                    </span>
-                                </div>
-                            )}
-                        </button>
-
-                        {(activeStats || executionTime !== null) && !isRunning && (
-                            <div className="flex items-center gap-6 ml-2 animate-in fade-in slide-in-from-right-4 duration-500">
-                                {activeStats && (
-                                    <>
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Time</span>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${aiMode && aiComplexity ? 'text-purple-400' : 'text-[#00a3ff]'}`}>
-                                                {activeStats.time}
-                                            </span>
-                                        </div>
-
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Space</span>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${aiMode && aiComplexity ? 'text-purple-400' : 'text-purple-400'}`}>
-                                                {activeStats.space}
-                                            </span>
-                                        </div>
-                                    </>
-                                )}
-
-                                {executionTime !== null && (
-                                    <div className="flex items-center gap-2">
-                                        <Clock size={12} strokeWidth={3} className="text-white/20" />
-                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{executionTime}ms</span>
-                                    </div>
-                                )}
-                            </div>
+                    {/* AI Trigger Button - Always Visible */}
+                    <button
+                        onClick={toggleAiMode}
+                        className={`flex items-center gap-2 px-2 py-1 rounded-lg transition-all ${aiMode
+                            ? (isAnalyzing ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20')
+                            : 'text-white/20 hover:text-white border border-transparent'
+                            }`}
+                        title={aiMode ? "AI Analysis Enabled" : "Enable AI Logic"}
+                    >
+                        {aiMode ? (
+                            <ChartLine size={20} strokeWidth={3} />
+                        ) : (
+                            <ChartLine size={18} strokeWidth={3} />
                         )}
-                    </div>
+                    </button>
+
+                    {(activeStats || executionTime !== null) && (
+                        <div className="flex items-center gap-6 mr-2">
+
+                            {/* Complexity Stats Removed from Header */}
+
+                            {/* Runtime moved to output bottom */}
+                        </div>
+                    )}
 
                     <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-white/5 bg-white/2">
                         <div className={`h-1.5 w-1.5 rounded-full ${isRunning ? 'bg-[#00a3ff] animate-pulse shadow-[0_0_10px_#00a3ff]' : 'bg-[#32a852]'}`} />
@@ -251,12 +214,19 @@ export default function OutputPanel({
                             <pre className="text-base leading-relaxed whitespace-pre-wrap text-white font-mono">{output}</pre>
                             <div className="absolute -left-6 top-0 bottom-0 w-px bg-white/5" />
                         </div>
+
+                        {/* Runtime Footer Removed */}
                     </motion.div>
                 ) : !isRunning ? (
                     <div className="flex h-full items-center justify-center">
-                        <div className="flex flex-col items-center gap-8 opacity-10">
-                            <Cpu size={64} strokeWidth={1} />
-                            <span className="text-xs font-black uppercase tracking-[0.8em] text-white ml-2">Console Idle</span>
+                        <div className="flex flex-col items-center gap-1 opacity-20">
+                            {/* Tounge Idle Image */}
+                            <img
+                                src="/tounge.png"
+                                alt="Tounge Idle"
+                                className="w-48 h-48 object-contain opacity-50 grayscale hover:grayscale-0 transition-all duration-500"
+                            />
+                            <span className="text-xs font-black uppercase tracking-[0.6em] text-white">Tounge is Idle</span>
                         </div>
                     </div>
                 ) : (
@@ -268,6 +238,46 @@ export default function OutputPanel({
                     </div>
                 )}
             </div>
+
+            {/* Footer - Complexity Stats */}
+            {(activeStats || isAnalyzing) && (
+                <div className="flex items-center justify-between border-t border-[#111] bg-[#050505] px-8 py-4 shrink-0">
+                    <div className="flex items-center gap-8">
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Time Complexity</span>
+                            {isAnalyzing ? (
+                                <div className="h-3 w-16 bg-white/10 rounded-full animate-pulse mt-0.5" />
+                            ) : (
+                                <span className={`text-xs font-black uppercase tracking-widest ${aiMode && aiComplexity ? 'text-purple-400' : 'text-[#00a3ff]'}`}>
+                                    {activeStats?.time || '-'}
+                                </span>
+                            )}
+                        </div>
+
+                        <div className="w-px h-6 bg-[#1a1a1a]" />
+
+                        <div className="flex flex-col gap-1">
+                            <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Space Complexity</span>
+                            {isAnalyzing ? (
+                                <div className="h-3 w-16 bg-white/10 rounded-full animate-pulse mt-0.5" />
+                            ) : (
+                                <span className={`text-xs font-black uppercase tracking-widest ${aiMode && aiComplexity ? 'text-purple-400' : 'text-purple-400'}`}>
+                                    {activeStats?.space || '-'}
+                                </span>
+                            )}
+                        </div>
+
+                    </div>
+
+                    <div className="flex items-center gap-2 px-8 py-2 rounded-lg border border-white/5">
+                        <span className="font-bold text-gray-200 uppercase tracking-widest text-sm">Run Time :</span>
+                        <div className="h-3 w-px " />
+                        <span className="text-xs font-black uppercase tracking-widest text-[#32a852]">
+                            {executionTime ? `${executionTime}ms` : '-'}
+                        </span>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

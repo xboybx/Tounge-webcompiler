@@ -1,0 +1,38 @@
+Running Extended DSA Accuracy Tests...
+
+✅ PASSED: Array: Two Sum (Hash Map)
+✅ PASSED: Array: Binary Search
+✅ PASSED: Array: Kadane's Algorithm
+✅ PASSED: Array: Rotate Array
+✅ PASSED: String: Valid Palindrome
+❌ FAILED: String: Group Anagrams
+   Expected: Time O(N log N), Space O(N)
+   Actually: Time O(N), Space O(N)
+✅ PASSED: LL: Detect Cycle (Floyd's)
+✅ PASSED: Recursion: Factorial
+❌ FAILED: Backtracking: Power Set
+   Expected: Time O(2^N), Space O(2^N)
+   Actually: Time O(N), Space O(N)
+❌ FAILED: Backtracking: Permutations
+   Expected: Time O(N!), Space O(N!)
+   Actually: Time O(N), Space O(N)
+❌ FAILED: Backtracking: N-Queens
+   Expected: Time O(N!), Space O(N)
+   Actually: Time O(N), Space O(N)
+❌ FAILED: Sort: MergeSort
+   Expected: Time O(N log N), Space O(N)
+   Actually: Time O(log N), Space O(1)
+❌ FAILED: Sort: QuickSort
+   Expected: Time O(N log N), Space O(N)
+   Actually: Time O(N), Space O(N)
+❌ FAILED: Tree: Inorder Traversal
+   Expected: Time O(N), Space O(N)
+   Actually: Time O(1), Space O(N)
+❌ FAILED: Graph: Number of Islands (DFS)
+   Expected: Time O(R*C), Space O(R*C)
+   Actually: Time O(N²), Space O(1)
+❌ FAILED: Graph: Dijkstra's Algorithm
+   Expected: Time O((V+E) log V), Space O(V+E)
+   Actually: Time O(N), Space O(1)
+
+Tests Completed: 7/16 passed.
