@@ -13,32 +13,74 @@ interface CodeEditorProps {
 
 export default function CodeEditor({ value, onChange, language, theme = 'vs-dark' }: CodeEditorProps) {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const observer = new ResizeObserver(() => {
+            if (editorRef.current) {
+                editorRef.current.layout();
+            }
+        });
+
+        observer.observe(containerRef.current);
+
+        return () => {
+            observer.disconnect();
+        };
+
+    }, []);
 
     const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
         editorRef.current = editor;
-        editor.focus();
+
+        // Initial layout trigger
+        setTimeout(() => {
+            editor.layout();
+            editor.focus();
+        }, 100);
     };
 
     const handleEditorChange = (value: string | undefined) => {
         onChange(value || '');
     };
 
+    const handleBeforeMount = (monaco: any) => {
+        monaco.editor.defineTheme('noir', {
+            base: 'vs-dark',
+            inherit: true,
+            rules: [],
+            colors: {
+                'editor.background': '#1e1e1e',
+                'editor.lineHighlightBackground': '#2a2d2e',
+                'editorGutter.background': '#111111',
+                'editorLineNumber.foreground': '#858585',
+                'editorLineNumber.activeForeground': '#ffffff',
+                'scrollbarSlider.background': '#ffffff08',
+                'scrollbarSlider.hoverBackground': '#ffffff15',
+                'scrollbarSlider.activeBackground': '#ffffff20',
+            }
+        });
+    };
+
     return (
-        <div className="h-full w-full">
+        <div ref={containerRef} className="h-full w-full overflow-hidden bg-black">
             <Editor
                 height="100%"
                 language={language}
                 value={value}
-                theme={theme}
+                theme="noir"
                 onChange={handleEditorChange}
                 onMount={handleEditorDidMount}
+                beforeMount={handleBeforeMount}
                 options={{
                     minimap: { enabled: true },
                     fontSize: 14,
                     lineNumbers: 'on',
                     roundedSelection: true,
                     scrollBeyondLastLine: false,
-                    automaticLayout: true,
+                    automaticLayout: false,
                     tabSize: 2,
                     wordWrap: 'on',
                     formatOnPaste: true,
@@ -52,3 +94,5 @@ export default function CodeEditor({ value, onChange, language, theme = 'vs-dark
         </div>
     );
 }
+
+

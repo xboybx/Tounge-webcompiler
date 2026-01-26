@@ -17,12 +17,14 @@ import {
   Moon,
   Layout,
   Columns,
-  Rows
+  Rows,
+  X
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import SnippetsPanel from '@/components/SnippetsPanel';
 import OutputPanel from '@/components/OutputPanel';
+import { h2 } from 'framer-motion/client';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), { ssr: false });
 
@@ -39,137 +41,70 @@ const LANGUAGES = [
 ];
 
 const DEFAULT_CODE: Record<string, string> = {
-  javascript: `// Welcome to Code Craft Compiler!
-// Write your JavaScript code here and click Run or press Ctrl+Enter
-
-// Example: Simple function
-function greet(name) {
-  return \`Hello, \${name}! Welcome to the JavaScript playground.\`;
+  javascript: `function binarySearch(arr, target) {
+  let left = 0, right = arr.length - 1;
+  while (left <= right) {
+    let mid = Math.floor((left + right) / 2);
+    if (arr[mid] === target) return mid;
+    else if (arr[mid] < target) left = mid + 1;
+    else right = mid - 1;
+  }
+  return -1;
 }
 
-console.log(greet("Developer"));
-
-// Try some array operations
-const numbers = [1, 2, 3, 4, 5];
-const doubled = numbers.map(n => n * 2);
-console.log("Doubled:", doubled);
-
-// Object example
-const user = {
-  name: "John",
-  age: 25,
-  skills: ["JavaScript", "TypeScript", "React"]
-};
-
-console.log("User info:", user);
-`,
-  typescript: `// TypeScript Example
-interface User {
-  id: number;
-  name: string;
-  email: string;
-}
-
-function createUser(name: string, email: string): User {
-  return {
-    id: Date.now(),
-    name,
-    email
-  };
-}
-
-const user = createUser("Alice", "alice@example.com");
-console.log("Created user:", user);
+console.log(binarySearch([1,2,3,4,5], 4)); // 3
 `,
   python: `# Python Example
-print("Welcome to Python Compiler!")
-
-# List comprehension
+print("Welcome to Tounge!")
 numbers = [1, 2, 3, 4, 5]
-squared = [n ** 2 for n in numbers]
-print("Squared:", squared)
-
-# Function
-def greet(name):
-    return f"Hello, {name}!"
-
-print(greet("Developer"))
+print("Squared:", [n ** 2 for n in numbers])
 `,
   java: `public class Main {
     public static void main(String[] args) {
         System.out.println("Welcome to Java Compiler!");
-        
-        int[] numbers = {1, 2, 3, 4, 5};
-        int sum = 0;
-        for (int num : numbers) {
-            sum += num;
-        }
-        System.out.println("Sum: " + sum);
     }
 }
 `,
   cpp: `#include <iostream>
-#include <vector>
 using namespace std;
 
 int main() {
     cout << "Welcome to C++ Compiler!" << endl;
-    
-    vector<int> numbers = {1, 2, 3, 4, 5};
-    int sum = 0;
-    for (int num : numbers) {
-        sum += num;
-    }
-    cout << "Sum: " << sum << endl;
-    
     return 0;
 }
 `,
   go: `package main
-
 import "fmt"
-
 func main() {
-\tfmt.Println("Welcome to Go Compiler!")
-\t
-\tnumbers := []int{1, 2, 3, 4, 5}
-\tsum := 0
-\tfor _, num := range numbers {
-\t\tsum += num
-\t}
-\tfmt.Printf("Sum: %d\\n", sum)
+	fmt.Println("Welcome to Go Compiler!")
 }
 `,
   rust: `fn main() {
     println!("Welcome to Rust Compiler!");
-    
-    let numbers = vec![1, 2, 3, 4, 5];
-    let sum: i32 = numbers.iter().sum();
-    println!("Sum: {}", sum);
 }
 `,
   csharp: `using System;
-using System.Linq;
-
 class Program {
     static void Main() {
         Console.WriteLine("Welcome to C# Compiler!");
-        
-        int[] numbers = { 1, 2, 3, 4, 5 };
-        int sum = numbers.Sum();
-        Console.WriteLine($"Sum: {sum}");
     }
 }
 `,
   php: `<?php
-echo "Welcome to PHP Compiler!\\n";
-
-$numbers = [1, 2, 3, 4, 5];
-$sum = array_sum($numbers);
-echo "Sum: $sum\\n";
+echo "Welcome to PHP Compiler!\n";
 ?>
 `,
 };
+
+interface Snippet {
+  _id: string;
+  title: string;
+  description?: string;
+  language: string;
+  code: string;
+  tags?: string[];
+  createdAt: string;
+}
 
 export default function Home() {
   const [code, setCode] = useState(DEFAULT_CODE.javascript);
@@ -181,6 +116,16 @@ export default function Home() {
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [executionTime, setExecutionTime] = useState<number | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [snippetsRefresh, setSnippetsRefresh] = useState(0);
+
+  const [complexity, setComplexity] = useState<{ time: string; space: string } | null>(null);
+
+  const [newSnippet, setNewSnippet] = useState({
+    title: '',
+    description: '',
+    tags: '',
+  });
 
   const currentLanguage = LANGUAGES.find(l => l.id === language);
 
@@ -214,6 +159,9 @@ export default function Home() {
         setOutput(data.output);
         setError(data.error);
         setExecutionTime(data.executionTime);
+        if (data.metadata?.complexity) {
+          setComplexity(data.metadata.complexity);
+        }
       } else {
         setError(data.error);
       }
@@ -221,6 +169,37 @@ export default function Home() {
       setError(err.message || 'Failed to execute code');
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const handleSaveSnippet = async () => {
+    if (!newSnippet.title) {
+      alert('Please enter a title');
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/snippets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: newSnippet.title,
+          description: newSnippet.description,
+          language: language,
+          code: code,
+          tags: newSnippet.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setShowSaveDialog(false);
+        setNewSnippet({ title: '', description: '', tags: '' });
+        setSnippetsRefresh(prev => prev + 1);
+      }
+    } catch (error) {
+      console.error('Error saving snippet:', error);
     }
   };
 
@@ -270,7 +249,6 @@ export default function Home() {
     input.click();
   };
 
-  // Keyboard shortcut for Ctrl+Enter
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
@@ -279,114 +257,133 @@ export default function Home() {
   };
 
   return (
-    <div className="flex h-screen flex-col bg-zinc-950 text-zinc-100" onKeyDown={handleKeyDown}>
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-6 py-4 min-h-[72px]">
-        {/* Left: Title & Logo */}
-        <div className="flex items-center gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-900/20">
-            <Code2 className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">Code Craft</h1>
-            <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest leading-none mt-1">Compiler Engine</p>
-          </div>
-        </div>
-
-        {/* Center: Language & Run Button */}
-        <div className="flex items-center gap-4">
-          <div className="relative group">
-            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-zinc-400 group-hover:text-blue-400 transition-colors">
-              <ChevronDown size={14} className="mt-0.5" />
+    <div className="flex h-screen flex-col bg-black text-white font-sans selection:bg-white/20" onKeyDown={handleKeyDown}>
+      {/* Vercel Noir Header - Refined 2026 */}
+      <header className="flex h-20 items-center justify-between border-b border-[#222] bg-black px-8 shrink-0 relative z-30">
+        <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4 text-white uppercase tracking-tighter">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.8)] bg-linear-to-b from-zinc-800 via-black to-black border border-white/10 p-1.5">
+              <img src="/apple-icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
             </div>
-            <select
-              value={language}
-              onChange={(e) => handleLanguageChange(e.target.value)}
-              className="appearance-none bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm rounded-lg block w-48 pl-10 pr-4 py-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all hover:bg-zinc-800/80 cursor-pointer font-medium outline-none"
-            >
-              {LANGUAGES.map((lang) => (
-                <option key={lang.id} value={lang.id}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
+            <span className="text-xl font-black hidden sm:block">Tounge</span>
           </div>
 
-          <div className="w-px h-6 bg-zinc-800 mx-1" />
+          <div className="h-6 w-px bg-[#222] hidden sm:block" />
 
-          {/* Run Button - Modernized */}
-          <button
-            onClick={handleRunCode}
-            disabled={isRunning}
-            className="flex items-center justify-center rounded-full bg-green-600 w-11 h-11 text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/30 group"
-            title="Run Code (Ctrl+Enter)"
-          >
-            {isRunning ? (
-              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
-            ) : (
-              <Play className="h-5 w-5 fill-current group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-            )}
-          </button>
+          <div className="flex items-center gap-3">
+            <span className="text-xs font-bold text-white uppercase tracking-wider hidden sm:block">{currentLanguage?.name}</span>
+            <div className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-[#111] transition-all cursor-pointer">
+              <ChevronDown size={16} strokeWidth={3} className="text-white relative z-0" />
+              <select
+                value={language}
+                onChange={(e) => handleLanguageChange(e.target.value)}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                title="Change Language"
+              >
+                {LANGUAGES.map((lang) => (
+                  <option key={lang.id} value={lang.id} className="bg-black text-white">
+                    {lang.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
-        {/* Right: Action Buttons */}
-        <div className="flex items-center gap-1.5 bg-zinc-800/50 p-1 rounded-xl border border-zinc-800/50">
-          <button
-            onClick={handleUpload}
-            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
-            title="Upload file"
-          >
-            <Upload size={18} />
-          </button>
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleRunCode}
+              disabled={isRunning}
+              style={{ backgroundColor: '#ffffff', color: '#000000', minWidth: '100px' }}
+              className="flex items-center justify-center gap-2 h-8 px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50"
+            >
+              {isRunning ? (
+                <div className="h-3 w-3 animate-spin rounded-full border-2 border-black border-t-transparent" />
+              ) : (
+                <Play size={14} fill="#000000" strokeWidth={3} color="#000000" />
+              )}
+              <span>{isRunning ? 'RUNNING' : 'EXECUTE'}</span>
+            </button>
 
-          <button
-            onClick={handleDownload}
-            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
-            title="Download code"
-          >
-            <Download size={18} />
-          </button>
+            <button
+              onClick={() => setShowSaveDialog(true)}
+              className="p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
+              title="Save to Repository"
+            >
+              <Save size={20} strokeWidth={3} />
+            </button>
+          </div>
 
-          <button
-            onClick={() => setTheme(theme === 'vs-dark' ? 'light' : 'vs-dark')}
-            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
-            title="Toggle theme"
-          >
-            {theme === 'vs-dark' ? <Sun size={18} /> : <Moon size={18} />}
-          </button>
+          <div className="w-px h-5 bg-[#222] hidden sm:block" />
 
-          <button
-            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
-            title="Settings"
-          >
-            <Settings size={18} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleUpload}
+              className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+              title="Upload"
+            >
+              <Upload size={20} strokeWidth={3} />
+            </button>
+            <button
+              onClick={handleDownload}
+              className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+              title="Download"
+            >
+              <Download size={20} strokeWidth={3} />
+            </button>
+            <button
+              onClick={() => setTheme(theme === 'vs-dark' ? 'light' : 'vs-dark')}
+              className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+              title="Theme"
+            >
+              {theme === 'vs-dark' ? <Sun size={20} strokeWidth={3} /> : <Moon size={20} strokeWidth={3} />}
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* Main Content - Resizable Layout */}
-      <div className="flex flex-1 overflow-hidden border-t border-zinc-800">
-        {/* Integrated Side Panel (Expandable) */}
-        <motion.div
-          initial={false}
-          animate={{
-            width: showSnippets ? 320 : 48
-          }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="shrink-0 h-full border-r border-zinc-800 bg-zinc-950 overflow-hidden"
-        >
-          <SnippetsPanel
-            onLoadSnippet={handleLoadSnippet}
-            currentCode={code}
-            currentLanguage={language}
-            isExpanded={showSnippets}
-            onToggle={() => setShowSnippets(!showSnippets)}
-          />
-        </motion.div>
+      {/* Workspace */}
+      <main className="flex flex-1 overflow-hidden">
+        {/* Sidebar Toggle Bar */}
+        <div className="w-16 flex flex-col items-center border-r border-[#222] bg-black shrink-0">
+          <button
+            onClick={() => setShowSnippets(!showSnippets)}
+            className={`p-3 rounded-xl transition-all mt-10 active:scale-90 border-2 ${showSnippets ? 'bg-[#222] border-white text-white shadow-[0_0_25px_rgba(255,255,255,0.15)]' : 'bg-transparent border-transparent text-white/40 hover:text-white hover:bg-[#111]'}`}
+          >
+            <Layout size={28} />
+          </button>
+        </div>
 
-        <PanelGroup orientation={terminalPosition === 'right' ? 'horizontal' : 'vertical'} className="flex-1 h-full">
-          {/* Editor Panel */}
-          <Panel defaultSize={70} minSize={20} className="flex flex-col">
+        {/* Sidebar Content */}
+        <AnimatePresence mode="wait">
+          {showSnippets && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 340, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="h-full border-r border-[#222] bg-black overflow-hidden"
+            >
+              <div className="w-[340px] h-full">
+                <SnippetsPanel
+                  onLoadSnippet={handleLoadSnippet}
+                  currentCode={code}
+                  currentLanguage={language}
+                  isExpanded={true}
+                  onToggle={() => setShowSnippets(false)}
+                  refreshTrigger={snippetsRefresh}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <PanelGroup orientation={terminalPosition === 'right' ? 'horizontal' : 'vertical'} className="flex-1">
+          <Panel defaultSize={70} minSize={20} className="relative">
+            <div className="absolute bottom-6 right-6 z-10 opacity-30 pointer-events-none">
+              <span className="text-sm font-mono uppercase tracking-[0.2em] font-bold">{language}</span>
+            </div>
             <CodeEditor
               value={code}
               onChange={setCode}
@@ -395,38 +392,115 @@ export default function Home() {
             />
           </Panel>
 
-          <PanelResizeHandle className={`relative group hover:bg-blue-600/50 transition-colors ${terminalPosition === 'right' ? 'w-1 px-0.5 cursor-col-resize' : 'h-1 py-0.5 cursor-row-resize'}`}>
-            <div className={`absolute bg-zinc-800 group-hover:bg-blue-400/50 ${terminalPosition === 'right' ? 'inset-y-0 left-1/2 -translate-x-1/2 w-px' : 'inset-x-0 top-1/2 -translate-y-1/2 h-px'}`} />
+          <PanelResizeHandle className={`relative group transition-colors hover:bg-white/10 ${terminalPosition === 'right' ? 'w-px' : 'h-px'}`}>
+            <div className={`absolute bg-[#222] transition-colors group-hover:bg-white/40 ${terminalPosition === 'right' ? 'inset-y-0 w-px' : 'inset-x-0 h-px'}`} />
           </PanelResizeHandle>
 
-          {/* Output Panel */}
-          <Panel defaultSize={30} minSize={10} className="flex flex-col">
+          <Panel defaultSize={30} minSize={10}>
             <OutputPanel
               output={output}
               error={error}
               isRunning={isRunning}
               executionTime={executionTime}
+              complexity={complexity}
               terminalPosition={terminalPosition}
               onTogglePosition={() => setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right')}
+              codeContext={code}
+              language={language}
             />
           </Panel>
         </PanelGroup>
-      </div>
+      </main>
 
-      {/* Footer */}
-      <footer className="flex items-center justify-between border-t border-zinc-800 bg-zinc-900 px-4 py-1.5 text-xs text-zinc-400">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-2">
-            <span className={`h-2 w-2 rounded-full ${isRunning ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></span>
-            {currentLanguage?.name}
-          </span>
+      {/* Save Dialog Backdrop */}
+      <AnimatePresence>
+        {showSaveDialog && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowSaveDialog(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center  backdrop-blur-xs p-24"
+          >
+            <motion.div
+              initial={{ scale: 0.99, opacity: 0, y: 15 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.99, opacity: 0, y: 15 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-[760px] rounded-[48px] border border-white/5 bg-[#0a0a0a] p-32 shadow-[0_64px_256px_rgba(0,0,0,1)] flex flex-col"
+            >
+              <div className="space-y-32">
+                <div className="space-y-6">
+                  <h3 className="text-[12px] font-black uppercase tracking-[1em] text-white/10">Archive Protocol</h3>
+                  <h2 className="text-6xl font-black tracking-tighter text-white">Commit Logic</h2>
+                </div>
+
+                <div className="space-y-24">
+                  <div className="space-y-8">
+                    <label className="text-[12px] font-bold text-[#444] uppercase tracking-[0.5em] px-2 flex items-center gap-6">
+                      Logic Identifier
+                      <div className="h-px flex-1 bg-white/5" />
+                    </label>
+                    <input
+                      type="text"
+                      value={newSnippet.title}
+                      onChange={(e) => setNewSnippet({ ...newSnippet, title: e.target.value })}
+                      className="w-full bg-[#1e1e1e] border border-white/5 rounded-2xl py-8 px-10 text-2xl font-bold text-white outline-none focus:border-[#00a3ff]/40 focus:ring-12 focus:ring-[#00a3ff]/5 transition-all placeholder-[#222]"
+                      placeholder="Enter script name..."
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-10 p-12 rounded-[40px] border border-white/5 bg-white/2 mx-1 shadow-inner">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-black border border-white/10 shadow-2xl">
+                      <Code2 size={40} className="text-white/20" />
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[13px] font-bold text-white/20 uppercase tracking-[0.6em] leading-none">Platform Runtime</span>
+                      <span className="text-3xl font-black text-white uppercase tracking-tight">{currentLanguage?.name} Core</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-8 pt-24">
+                    <button
+                      onClick={() => setShowSaveDialog(false)}
+                      className="flex-1 flex items-center justify-center gap-4 py-8 rounded-2xl border border-white/5 bg-white/2 text-white/40 text-[11px] font-black uppercase tracking-[0.5em] hover:bg-white/5 hover:text-white transition-all active:scale-95"
+                    >
+                      <X size={24} strokeWidth={3} />
+                      <span>Cancel</span>
+                    </button>
+                    <button
+                      onClick={handleSaveSnippet}
+                      className="flex-2 flex items-center justify-center gap-5 py-8 bg-white text-[#00a3ff] text-sm font-black uppercase tracking-[0.5em] rounded-2xl hover:bg-neutral-100 transition-all active:scale-95 shadow-[0_30px_100px_rgba(0,163,255,0.2)]"
+                    >
+                      <Save size={24} strokeWidth={3} />
+                      <span>Archive Logic</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Minimal Footer */}
+      <footer className="h-12 flex items-center justify-between border-t border-[#222] bg-black px-6 text-xs shrink-0">
+        <div className="flex items-center gap-8 text-white font-bold">
+          <div className="flex items-center gap-3">
+            <div className={`h-2.5 w-2.5 rounded-full ${isRunning ? 'bg-yellow-400 animate-pulse' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]'}`} />
+            <span className="uppercase tracking-widest">Engine Online</span>
+          </div>
+          <span className="text-[#333]">|</span>
+          <span className="uppercase tracking-widest text-[#888]">{currentLanguage?.name}</span>
         </div>
 
-        <div className="flex items-center gap-4 text-zinc-500">
-          <span>Press Ctrl+Enter to run code</span>
+        <div className="flex items-center gap-8 text-white font-bold uppercase tracking-widest">
           {executionTime !== null && (
-            <span className="text-green-400">⚡ {executionTime}ms</span>
+            <span className="text-[#888]">Runtime: {executionTime}ms</span>
           )}
+          <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">CTRL + ENTER</span>
         </div>
       </footer>
     </div>

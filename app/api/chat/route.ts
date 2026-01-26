@@ -1,0 +1,29 @@
+import { NextResponse } from 'next/server';
+import { askAI } from '@/lib/ai';
+
+export async function POST(req: Request) {
+    try {
+        const { message, contextCode } = await req.json();
+
+        // 1. Check for API Key
+        if (!process.env.OPENROUTER_API_KEY) {
+            let reply = "⚠️ **Offline Mode**: Please set `OPENROUTER_API_KEY` in `.env.local` to use the AI Assistant.";
+            const lowerMsg = message.toLowerCase();
+            if (lowerMsg.includes('dijkstra')) reply = "**Dijkstra Analysis (Offline)**: O((V+E) log V) Time, O(V+E) Space.";
+            else if (lowerMsg.includes('complexity')) reply = "I can analyze complexity! Connect my brain (OpenRouter Key) to see me work.";
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return NextResponse.json({ reply });
+        }
+
+        // 2. Call AI Service
+        const reply = await askAI(message, contextCode);
+        return NextResponse.json({ reply });
+
+    } catch (error) {
+        console.error("Chat Route Error:", error);
+        return NextResponse.json({
+            reply: "🤖 **Assistant**: I'm having trouble connecting to OpenRouter (All free models busy). Please try later!"
+        });
+    }
+}

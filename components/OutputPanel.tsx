@@ -1,15 +1,24 @@
 'use client';
 
-import { Terminal, AlertCircle, CheckCircle, Clock, Layout, Columns, Rows } from 'lucide-react';
+import { Terminal, AlertCircle, Cpu, Clock, Layout, Columns, Rows, CheckCircle2, Sparkles, AlertTriangle, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 
 interface OutputPanelProps {
     output: string;
     error: string | null;
     isRunning: boolean;
     executionTime: number | null;
+    complexity: {
+        time: string;
+        space: string;
+        maintainability?: number;
+        cyclomatic?: number;
+    } | null;
     terminalPosition: 'right' | 'bottom';
     onTogglePosition: () => void;
+    codeContext?: string;
+    language?: string;
 }
 
 export default function OutputPanel({
@@ -17,77 +26,244 @@ export default function OutputPanel({
     error,
     isRunning,
     executionTime,
+    complexity,
     terminalPosition,
-    onTogglePosition
+    onTogglePosition,
+    codeContext = "",
+    language = "javascript"
 }: OutputPanelProps) {
+    const [aiComplexity, setAiComplexity] = useState<{ time: string, space: string, explanation?: string, suggestions?: string | string[] } | null>(null);
+    const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [aiError, setAiError] = useState(false);
+    const [aiMode, setAiMode] = useState(true); // Default ON
+
+    const activeStats = (aiMode && aiComplexity) ? {
+        time: aiComplexity.time,
+        space: aiComplexity.space,
+        maintainability: complexity?.maintainability,
+        cyclomatic: complexity?.cyclomatic
+    } : complexity;
+
+    useEffect(() => {
+        // Reset state when a new run starts
+        if (isRunning) {
+            setAiComplexity(null);
+            setAiError(false);
+        }
+
+        // Auto-run AI analysis if not running, context exists, mode is ON, and no result yet
+        if (!isRunning && codeContext && aiMode && !aiComplexity && output) {
+            handleDeepAnalyze();
+        }
+    }, [isRunning, codeContext, aiMode, output]);
+
+    const handleDeepAnalyze = async () => {
+        if (isAnalyzing || !codeContext) return;
+        setIsAnalyzing(true);
+        setAiError(false);
+        try {
+            const res = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: codeContext, language })
+            });
+            const data = await res.json();
+
+            if (data.time) setAiComplexity(data);
+            else setAiError(true);
+        } catch (e) {
+            setAiError(true);
+        } finally {
+            setIsAnalyzing(false);
+        }
+    };
+
+    const toggleAiMode = () => {
+        const newMode = !aiMode;
+        setAiMode(newMode);
+        if (newMode && !aiComplexity) handleDeepAnalyze();
+    };
+
     return (
-        <div className="flex h-full flex-col bg-zinc-950">
-            <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2.5">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                        <Terminal className="h-4 w-4 text-blue-400" />
-                        <span className="text-sm font-semibold text-zinc-300">Output Console</span>
+        <div className="flex h-full flex-col bg-black border-l border-[#111]">
+            <div className="flex h-14 items-center justify-between border-b border-[#111] bg-[#050505] px-8 shrink-0">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-3">
+                        <Terminal size={18} strokeWidth={3} className="text-white/40" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white">Execution Output</span>
                     </div>
+
+                    <div className="w-px h-4 bg-[#1a1a1a]" />
 
                     <button
                         onClick={onTogglePosition}
-                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all text-[10px] font-bold uppercase tracking-wider border border-zinc-800"
-                        title={terminalPosition === 'right' ? "Move to Bottom" : "Move to Right"}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 text-white/20 hover:text-white transition-all group active:scale-95"
+                        title={terminalPosition === 'right' ? "Move to Bottom" : "Move to Side"}
                     >
-                        {terminalPosition === 'right' ? <Rows size={12} /> : <Columns size={12} />}
-                        {terminalPosition === 'right' ? "Bottom" : "Side"}
+                        {terminalPosition === 'right' ? (
+                            <Rows size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
+                        ) : (
+                            <Columns size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
+                        )}
+                        <span className="text-[9px] font-black uppercase tracking-widest hidden lg:block">Layout</span>
                     </button>
                 </div>
-                {executionTime !== null && !isRunning && (
-                    <div className="flex items-center gap-1.5 text-xs text-zinc-400">
-                        <Clock className="h-3.5 w-3.5" />
-                        <span>{executionTime}ms</span>
+
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-6 mr-2">
+                        {/* AI Trigger Button - Always Visible */}
+                        <button
+                            onClick={toggleAiMode}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all border ${aiMode
+                                ? (isAnalyzing ? 'bg-purple-500/20 text-purple-300 border-purple-500/30' : 'bg-purple-500/5 text-purple-400 border-purple-500/20 shadow-[0_0_15px_rgba(168,85,247,0.1)]')
+                                : 'text-white/20 hover:text-white border-transparent'
+                                }`}
+                            title={aiMode ? "AI Deep Analysis Enabled" : "Enable AI Deep Analysis"}
+                        >
+                            {isAnalyzing ? (
+                                <div className="h-3 w-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                            ) : aiError ? (
+                                <AlertTriangle size={14} strokeWidth={3} className="text-red-400" />
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Sparkles size={14} strokeWidth={3} className={aiMode ? "fill-purple-400" : ""} />
+                                    <span className="text-[9px] font-black uppercase tracking-widest hidden sm:inline">
+                                        {aiMode ? 'AI Mode' : 'Local'}
+                                    </span>
+                                </div>
+                            )}
+                        </button>
+
+                        {(activeStats || executionTime !== null) && !isRunning && (
+                            <div className="flex items-center gap-6 ml-2 animate-in fade-in slide-in-from-right-4 duration-500">
+                                {activeStats && (
+                                    <>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Time</span>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${aiMode && aiComplexity ? 'text-purple-400' : 'text-[#00a3ff]'}`}>
+                                                {activeStats.time}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[9px] font-black text-white/20 uppercase tracking-widest">Space</span>
+                                            <span className={`text-[10px] font-black uppercase tracking-widest ${aiMode && aiComplexity ? 'text-purple-400' : 'text-purple-400'}`}>
+                                                {activeStats.space}
+                                            </span>
+                                        </div>
+                                    </>
+                                )}
+
+                                {executionTime !== null && (
+                                    <div className="flex items-center gap-2">
+                                        <Clock size={12} strokeWidth={3} className="text-white/20" />
+                                        <span className="text-[10px] font-black text-white/40 uppercase tracking-widest">{executionTime}ms</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
-                )}
+
+                    <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-white/5 bg-white/2">
+                        <div className={`h-1.5 w-1.5 rounded-full ${isRunning ? 'bg-[#00a3ff] animate-pulse shadow-[0_0_10px_#00a3ff]' : 'bg-[#32a852]'}`} />
+                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
+                            {isRunning ? 'Processing' : 'Sys Online'}
+                        </span>
+                    </div>
+                </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 font-mono text-sm">
-                {isRunning ? (
+            <div className="flex-1 overflow-auto p-12 font-mono scrollbar-hide selection:bg-white/20">
+                {/* AI Explanation Injection */}
+                {aiMode && aiComplexity?.explanation && !error && output && (
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="flex items-center gap-3 text-blue-400"
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-8 space-y-4"
                     >
-                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-blue-400 border-t-transparent"></div>
-                        <span>Compiling and executing code...</span>
+                        {/* Explanation Block */}
+                        <div className="p-6 rounded-2xl bg-purple-500/5 border border-purple-500/10">
+                            <div className="flex items-center gap-3 mb-2">
+                                <Sparkles size={16} className="text-purple-400" />
+                                <span className="text-xs font-bold text-purple-400 uppercase tracking-widest">AI Audit Report</span>
+                            </div>
+                            <p className="text-sm text-purple-200/80 leading-relaxed max-w-3xl">
+                                {aiComplexity.explanation}
+                            </p>
+                        </div>
+
+                        {/* Suggestions Block */}
+                        {aiComplexity.suggestions && (
+                            <div className="p-6 rounded-2xl bg-amber-500/5 border border-amber-500/10">
+                                <div className="flex items-center gap-3 mb-2">
+                                    <Lightbulb size={16} className="text-amber-400" />
+                                    <span className="text-xs font-bold text-amber-400 uppercase tracking-widest">Optimization Tips</span>
+                                </div>
+                                <div className="space-y-2">
+                                    {Array.isArray(aiComplexity.suggestions) ? (
+                                        aiComplexity.suggestions.map((s, idx) => (
+                                            <p key={idx} className="text-sm text-amber-200/80 leading-relaxed max-w-3xl">
+                                                • {s}
+                                            </p>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-amber-200/80 leading-relaxed max-w-3xl">
+                                            {aiComplexity.suggestions}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
-                ) : error ? (
+                )}
+
+                {error ? (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-2"
+                        className="space-y-8"
                     >
-                        <div className="flex items-start gap-2 text-red-400">
-                            <AlertCircle className="mt-1 h-5 w-5 shrink-0" />
-                            <div>
-                                <div className="font-semibold">Compilation/Runtime Error:</div>
-                                <pre className="mt-2 whitespace-pre-wrap text-red-300">{error}</pre>
+                        <div className="flex flex-col gap-6 p-10 rounded-[32px] bg-[#ff0000]/2 border border-[#ff0000]/20 shadow-[0_24px_64px_rgba(255,0,0,0.05)]">
+                            <div className="flex items-center gap-4">
+                                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#ff0000]/10 border border-[#ff0000]/20">
+                                    <AlertCircle size={24} strokeWidth={3} className="text-[#ff0000]" />
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.5em] text-[#ff0000]/40 leading-none mb-1.5">Runtime Fault</span>
+                                    <span className="text-lg font-black text-white uppercase tracking-tight">Standard Error</span>
+                                </div>
                             </div>
+
+                            <pre className="text-sm leading-relaxed whitespace-pre-wrap text-[#ff4d4d] ml-8 pl-4 font-mono border-l-2 border-[#ff0000]/10">{error}</pre>
                         </div>
                     </motion.div>
                 ) : output ? (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="space-y-2"
+                        className="space-y-6"
                     >
-                        <div className="flex items-center gap-2 text-green-400">
-                            <CheckCircle className="h-4 w-4" />
-                            <span className="text-xs font-semibold">Execution Successful</span>
+                        <div className="flex items-center gap-4 mb-4 opacity-20">
+                            <CheckCircle2 size={16} strokeWidth={3} className="text-white" />
+                            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-white">Stream Recovered</span>
                         </div>
-                        <pre className="mt-3 whitespace-pre-wrap text-zinc-300">{output}</pre>
+                        <div className="relative ml-8">
+                            <pre className="text-base leading-relaxed whitespace-pre-wrap text-white font-mono">{output}</pre>
+                            <div className="absolute -left-6 top-0 bottom-0 w-px bg-white/5" />
+                        </div>
                     </motion.div>
+                ) : !isRunning ? (
+                    <div className="flex h-full items-center justify-center">
+                        <div className="flex flex-col items-center gap-8 opacity-10">
+                            <Cpu size={64} strokeWidth={1} />
+                            <span className="text-xs font-black uppercase tracking-[0.8em] text-white ml-2">Console Idle</span>
+                        </div>
+                    </div>
                 ) : (
-                    <div className="flex h-full items-center justify-center text-zinc-500">
-                        <div className="text-center">
-                            <Terminal className="mx-auto mb-3 h-12 w-12 opacity-50" />
-                            <p className="text-sm">No output yet</p>
-                            <p className="mt-1 text-xs">Click "Run Code" to execute your program</p>
+                    <div className="flex h-full items-center justify-center">
+                        <div className="flex flex-col items-center gap-8">
+                            <div className="h-12 w-12 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                            <span className="text-xs font-black uppercase tracking-[0.6em] text-white/20 ml-2">Assembling Logic</span>
                         </div>
                     </div>
                 )}
