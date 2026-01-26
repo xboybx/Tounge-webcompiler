@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
             switch (language) {
                 case 'javascript':
                 case 'typescript':
-                    output = await executeJavaScript(code, language, runtime || 'node', fileId);
+                    output = await executeJavaScript(code, language, fileId);
                     break;
                 case 'python':
                     output = await executePython(code, fileId);
@@ -93,50 +93,38 @@ export async function POST(request: NextRequest) {
     }
 }
 
-async function executeJavaScript(code: string, language: string, runtime: string, fileId: string): Promise<string> {
-    const fileName = path.join(TEMP_DIR, `${fileId}.${language === 'typescript' ? 'ts' : 'js'}`);
+async function executeJavaScript(code: string, language: string, fileId: string): Promise<string> {
+    const isTS = language === 'typescript';
+    const fileName = path.join(TEMP_DIR, `${fileId}.${isTS ? 'ts' : 'js'}`);
 
-    if (runtime === 'browser') {
-        // For browser runtime, we'll simulate browser environment
-        const wrappedCode = `
-// Simulate browser environment
-const window = global;
-const document = {
-  getElementById: () => null,
-  querySelector: () => null,
-  createElement: () => ({}),
-  addEventListener: () => {},
-};
-const console = {
-  log: (...args) => console.log(...args),
-  error: (...args) => console.error(...args),
-  warn: (...args) => console.warn(...args),
-};
+    // Create a rich environment that supports both Node and Browser-like objects
+    const wrappedCode = `
+// Basic Browser Object Simulation (Optional / Helper)
+if (typeof global !== 'undefined' && !global.window) {
+    global.window = global;
+    global.document = {
+        getElementById: () => null,
+        querySelector: () => null,
+        createElement: () => ({ style: {}, appendChild: () => {} }),
+        addEventListener: () => {},
+    };
+    global.navigator = { userAgent: 'Node.js' };
+    global.localStorage = { getItem: () => null, setItem: () => {} };
+}
 
-// User code
+// User Code
 ${code}
 `;
-        await writeFile(fileName, wrappedCode);
-    } else {
-        // Node.js runtime - full access to Node APIs
-        await writeFile(fileName, code);
-    }
+
+    await writeFile(fileName, wrappedCode);
 
     try {
-        if (language === 'typescript') {
-            // Execute TypeScript using ts-node or compile to JS
-            const { stdout, stderr } = await execAsync(`npx tsx ${fileName}`, {
-                timeout: 10000,
-                maxBuffer: 1024 * 1024,
-            });
-            return stdout + (stderr || '');
-        } else {
-            const { stdout, stderr } = await execAsync(`node ${fileName}`, {
-                timeout: 10000,
-                maxBuffer: 1024 * 1024,
-            });
-            return stdout + (stderr || '');
-        }
+        const cmd = isTS ? `npx tsx ${fileName}` : `node ${fileName}`;
+        const { stdout, stderr } = await execAsync(cmd, {
+            timeout: 10000,
+            maxBuffer: 1024 * 1024,
+        });
+        return stdout + (stderr || '');
     } finally {
         await unlink(fileName).catch(() => { });
     }

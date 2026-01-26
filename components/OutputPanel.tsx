@@ -1,6 +1,6 @@
 'use client';
 
-import { Terminal, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Terminal, AlertCircle, CheckCircle, Clock, Layout, Columns, Rows } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 interface OutputPanelProps {
@@ -8,15 +8,35 @@ interface OutputPanelProps {
     error: string | null;
     isRunning: boolean;
     executionTime: number | null;
+    terminalPosition: 'right' | 'bottom';
+    onTogglePosition: () => void;
 }
 
-export default function OutputPanel({ output, error, isRunning, executionTime }: OutputPanelProps) {
+export default function OutputPanel({
+    output,
+    error,
+    isRunning,
+    executionTime,
+    terminalPosition,
+    onTogglePosition
+}: OutputPanelProps) {
     return (
         <div className="flex h-full flex-col bg-zinc-950">
             <div className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2.5">
-                <div className="flex items-center gap-2">
-                    <Terminal className="h-4 w-4 text-blue-400" />
-                    <span className="text-sm font-semibold text-zinc-300">Output Console</span>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                        <Terminal className="h-4 w-4 text-blue-400" />
+                        <span className="text-sm font-semibold text-zinc-300">Output Console</span>
+                    </div>
+
+                    <button
+                        onClick={onTogglePosition}
+                        className="flex items-center gap-1.5 px-2 py-1 rounded-md text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-all text-[10px] font-bold uppercase tracking-wider border border-zinc-800"
+                        title={terminalPosition === 'right' ? "Move to Bottom" : "Move to Right"}
+                    >
+                        {terminalPosition === 'right' ? <Rows size={12} /> : <Columns size={12} />}
+                        {terminalPosition === 'right' ? "Bottom" : "Side"}
+                    </button>
                 </div>
                 {executionTime !== null && !isRunning && (
                     <div className="flex items-center gap-1.5 text-xs text-zinc-400">

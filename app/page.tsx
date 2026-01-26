@@ -10,7 +10,14 @@ import {
   Settings,
   Menu,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ChevronDown,
+  Code2,
+  Sun,
+  Moon,
+  Layout,
+  Columns,
+  Rows
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
@@ -167,9 +174,9 @@ echo "Sum: $sum\\n";
 export default function Home() {
   const [code, setCode] = useState(DEFAULT_CODE.javascript);
   const [language, setLanguage] = useState('javascript');
-  const [runtime, setRuntime] = useState<'node' | 'browser'>('node');
   const [theme, setTheme] = useState<'vs-dark' | 'light'>('vs-dark');
   const [showSnippets, setShowSnippets] = useState(false);
+  const [terminalPosition, setTerminalPosition] = useState<'right' | 'bottom'>('right');
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -197,8 +204,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           code,
-          language,
-          runtime: language === 'javascript' ? runtime : undefined,
+          language
         }),
       });
 
@@ -275,96 +281,85 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-zinc-950 text-zinc-100" onKeyDown={handleKeyDown}>
       {/* Header */}
-      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-4 py-2">
-        {/* Left: Title */}
-        <div className="flex items-center gap-3">
-          <h1 className="text-lg font-bold text-zinc-100 ml-2">Code Craft Compiler</h1>
+      <header className="flex items-center justify-between border-b border-zinc-800 bg-zinc-900 px-6 py-4 min-h-[72px]">
+        {/* Left: Title & Logo */}
+        <div className="flex items-center gap-4">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-900/20">
+            <Code2 className="h-6 w-6 text-white" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-white">Code Craft</h1>
+            <p className="text-[10px] font-medium text-zinc-500 uppercase tracking-widest leading-none mt-1">Compiler Engine</p>
+          </div>
         </div>
 
-        {/* Center: Language, Runtime, Run Button */}
-        <div className="flex items-center gap-3">
-          <select
-            value={language}
-            onChange={(e) => handleLanguageChange(e.target.value)}
-            className="rounded-md border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-sm font-medium text-zinc-200 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-          >
-            {LANGUAGES.map((lang) => (
-              <option key={lang.id} value={lang.id}>
-                {lang.name}
-              </option>
-            ))}
-          </select>
-
-          {/* Runtime Tabs for JavaScript */}
-          {currentLanguage?.hasRuntime && (
-            <div className="flex rounded-md border border-zinc-700 bg-zinc-800">
-              <button
-                onClick={() => setRuntime('node')}
-                className={`px-4 py-1.5 text-sm font-medium transition-colors ${runtime === 'node'
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-              >
-                Node.js
-              </button>
-              <button
-                onClick={() => setRuntime('browser')}
-                className={`px-4 py-1.5 text-sm font-medium transition-colors ${runtime === 'browser'
-                  ? 'bg-zinc-700 text-white'
-                  : 'text-zinc-400 hover:text-zinc-200'
-                  }`}
-              >
-                Browser
-              </button>
+        {/* Center: Language & Run Button */}
+        <div className="flex items-center gap-4">
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-zinc-400 group-hover:text-blue-400 transition-colors">
+              <ChevronDown size={14} className="mt-0.5" />
             </div>
-          )}
+            <select
+              value={language}
+              onChange={(e) => handleLanguageChange(e.target.value)}
+              className="appearance-none bg-zinc-800 border border-zinc-700 text-zinc-200 text-sm rounded-lg block w-48 pl-10 pr-4 py-2.5 focus:ring-blue-500 focus:border-blue-500 transition-all hover:bg-zinc-800/80 cursor-pointer font-medium outline-none"
+            >
+              {LANGUAGES.map((lang) => (
+                <option key={lang.id} value={lang.id}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          {/* Run Button - Icon only as requested */}
+          <div className="w-px h-6 bg-zinc-800 mx-1" />
+
+          {/* Run Button - Modernized */}
           <button
             onClick={handleRunCode}
             disabled={isRunning}
-            className="flex items-center justify-center rounded-md bg-green-600 p-2 text-white transition-all hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/20"
+            className="flex items-center justify-center rounded-full bg-green-600 w-11 h-11 text-white transition-all hover:bg-green-500 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/30 group"
             title="Run Code (Ctrl+Enter)"
           >
             {isRunning ? (
-              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
             ) : (
-              <Play className="h-4 w-4 fill-current" />
+              <Play className="h-5 w-5 fill-current group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
             )}
           </button>
         </div>
 
         {/* Right: Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 bg-zinc-800/50 p-1 rounded-xl border border-zinc-800/50">
           <button
             onClick={handleUpload}
-            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
             title="Upload file"
           >
-            <Upload className="h-4 w-4" />
+            <Upload size={18} />
           </button>
 
           <button
             onClick={handleDownload}
-            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
             title="Download code"
           >
-            <Download className="h-4 w-4" />
+            <Download size={18} />
           </button>
 
           <button
             onClick={() => setTheme(theme === 'vs-dark' ? 'light' : 'vs-dark')}
-            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
             title="Toggle theme"
           >
-            {theme === 'vs-dark' ? '☀️' : '🌙'}
+            {theme === 'vs-dark' ? <Sun size={18} /> : <Moon size={18} />}
           </button>
 
           <button
-            className="rounded-md p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+            className="rounded-lg p-2.5 text-zinc-400 transition-all hover:bg-zinc-800 hover:text-white"
             title="Settings"
           >
-            <Settings className="h-4 w-4" />
+            <Settings size={18} />
           </button>
         </div>
       </header>
@@ -389,9 +384,9 @@ export default function Home() {
           />
         </motion.div>
 
-        <PanelGroup orientation="horizontal" className="flex-1 h-full">
+        <PanelGroup orientation={terminalPosition === 'right' ? 'horizontal' : 'vertical'} className="flex-1 h-full">
           {/* Editor Panel */}
-          <Panel defaultSize={50} minSize={20} className="flex flex-col">
+          <Panel defaultSize={70} minSize={20} className="flex flex-col">
             <CodeEditor
               value={code}
               onChange={setCode}
@@ -400,17 +395,19 @@ export default function Home() {
             />
           </Panel>
 
-          <PanelResizeHandle className="relative w-1 px-0.5 group hover:bg-blue-600/50 transition-colors cursor-col-resize">
-            <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-px bg-zinc-800 group-hover:bg-blue-400/50" />
+          <PanelResizeHandle className={`relative group hover:bg-blue-600/50 transition-colors ${terminalPosition === 'right' ? 'w-1 px-0.5 cursor-col-resize' : 'h-1 py-0.5 cursor-row-resize'}`}>
+            <div className={`absolute bg-zinc-800 group-hover:bg-blue-400/50 ${terminalPosition === 'right' ? 'inset-y-0 left-1/2 -translate-x-1/2 w-px' : 'inset-x-0 top-1/2 -translate-y-1/2 h-px'}`} />
           </PanelResizeHandle>
 
           {/* Output Panel */}
-          <Panel defaultSize={50} minSize={20} className="flex flex-col">
+          <Panel defaultSize={30} minSize={10} className="flex flex-col">
             <OutputPanel
               output={output}
               error={error}
               isRunning={isRunning}
               executionTime={executionTime}
+              terminalPosition={terminalPosition}
+              onTogglePosition={() => setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right')}
             />
           </Panel>
         </PanelGroup>
@@ -421,7 +418,7 @@ export default function Home() {
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-2">
             <span className={`h-2 w-2 rounded-full ${isRunning ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></span>
-            {currentLanguage?.name} {currentLanguage?.hasRuntime && `- ${runtime === 'node' ? 'Node.js' : 'Browser'} Runtime`}
+            {currentLanguage?.name}
           </span>
         </div>
 
