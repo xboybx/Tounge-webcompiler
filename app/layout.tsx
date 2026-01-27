@@ -37,7 +37,7 @@ export const metadata: Metadata = {
       { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
-  manifest: '/manifest.json', // Next.js maps manifest.ts to manifest.json automatically
+  manifest: '/manifest.json',
 };
 
 export default function RootLayout({
