@@ -1,7 +1,6 @@
-import { Terminal, AlertCircle, Sparkles, Columns, Rows, CheckCircle2, ChartLine, Lightbulb, Trash, ChevronDown, ChevronUp } from 'lucide-react';
+import { Terminal, AlertCircle, Sparkles, Columns, Rows, ClockCheck, CheckCircle2, Timer, Lightbulb, Trash, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
-import Image from 'next/image';
 
 interface OutputPanelProps {
     output: string;
@@ -151,9 +150,9 @@ export default function OutputPanel({
                         title={aiMode ? "AI Analysis Enabled" : "Enable AI Logic"}
                     >
                         {aiMode ? (
-                            <ChartLine size={20} strokeWidth={3} />
+                            <ClockCheck size={18} strokeWidth={3} />
                         ) : (
-                            <ChartLine size={18} strokeWidth={3} />
+                            <Timer size={18} strokeWidth={3} />
                         )}
                     </button>
 

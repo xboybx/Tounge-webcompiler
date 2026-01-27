@@ -500,10 +500,11 @@ export default function Home() {
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#FFD700] text-[#FFD700] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
           >
             <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#FFD700]" : ""} />
-            <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4">Ask</span>
+            <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4 "
+              style={{ marginRight: "10px" }}>Ask TOUNGE</span>
           </button>
 
-          <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">TOUNGE</span>
+          {/* <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">TOUNGE</span> */}
         </div>
       </footer>
     </div>
