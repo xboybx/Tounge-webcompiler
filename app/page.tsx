@@ -253,7 +253,7 @@ export default function Home() {
   return (
     <div className="flex h-screen flex-col bg-black text-white font-sans selection:bg-white/20" onKeyDown={handleKeyDown}>
       {/* Vercel Noir Header - Refined 2026 */}
-      <header className="flex h-20 items-center justify-between border-b border-[#222] bg-black px-8 shrink-0 relative z-30">
+      <header className="flex h-20 items-center justify-between border-b border-[#222] bg-black px-5 shrink-0 relative z-30">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-4 text-white uppercase tracking-tighter">
             <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.8)] bg-linear-to-b from-zinc-800 via-black to-black border border-white/10 p-1.5 font-bold">

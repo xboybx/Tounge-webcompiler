@@ -17,14 +17,17 @@ interface Message {
     timestamp: Date;
 }
 
-export default function FloatingChat({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+import { useChat } from '@/components/providers/ChatContext';
+
+export default function FloatingChat() {
+    const { isOpen, closeChat: onClose } = useChat();
     const [isExpanded, setIsExpanded] = useState(false);
     const [query, setQuery] = useState('');
     const [messages, setMessages] = useState<Message[]>([
         {
             id: 'welcome',
             role: 'assistant',
-            content: "Hi! I'm your Code Craft Assistant. Stuck on a DSA problem? Need a complexity check? Ask away!",
+            content: "Hi! I'm your Toungestant. Stuck on a DSA problem? Need a complexity check? Ask away!",
             timestamp: new Date()
         }
     ]);
@@ -168,11 +171,9 @@ export default function FloatingChat({ isOpen, onClose }: { isOpen: boolean; onC
                             {isTyping && (
                                 <div className="flex justify-start">
                                     <div className="px-5 py-4">
-                                        <div className="flex gap-1.5 items-center">
-                                            <span className="text-[10px] font-bold text-[#FF6D5A] uppercase tracking-widest mr-2 animate-pulse">Computing</span>
-                                            <span className="w-1 h-1 bg-[#FF6D5A] rounded-lg animate-bounce" />
-                                            <span className="w-1 h-1 bg-[#FF6D5A] rounded-lg animate-bounce delay-100" />
-                                            <span className="w-1 h-1 bg-[#FF6D5A] rounded-lg animate-bounce delay-200" />
+                                        <div className="flex gap-2 items-center">
+                                            <span className="text-[10px] font-bold text-[#FF6D5A] uppercase tracking-widest animate-pulse">Computing</span>
+                                            <div className="h-3 w-3 animate-spin rounded-full border-2 border-[#FF6D5A] border-t-transparent" />
                                         </div>
                                     </div>
                                 </div>

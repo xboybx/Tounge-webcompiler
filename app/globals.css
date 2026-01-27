@@ -123,3 +123,16 @@ button {
   background-color: #1e1e1e !important;
   /* Use !important if necessary, but try to avoid it */
 }
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s linear infinite;
+}

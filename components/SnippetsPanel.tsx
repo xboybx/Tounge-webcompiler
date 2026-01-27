@@ -80,21 +80,22 @@ export default function SnippetsPanel({
 
             <div className="p-6 space-y-4 border-b border-[#111]">
                 <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white group-focus-within:text-[#888] transition-colors" size={16} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors z-10" size={16} strokeWidth={3} />
                     <input
                         type="text"
                         placeholder="SEARCH ARCHIVE..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full bg-[#050505] border border-[#222] rounded-lg py-3 pl-12 pr-4 text-xs font-bold tracking-widest text-white placeholder-[#222] focus:border-white outline-none transition-all"
+                        className="w-full h-12 bg-[#1a1a1a] hover:bg-[#222] border border-[#222] focus:border-white/30 rounded-none pl-12 pr-4 text-xs font-bold tracking-widest text-white/80 placeholder-white/20 focus:bg-[#202020] outline-none transition-all"
                     />
                 </div>
             </div>
 
             <div className="flex-1 overflow-auto p-6 custom-scrollbar space-y-4">
                 {loading ? (
-                    <div className="flex h-32 items-center justify-center">
-                        <div className="h-6 w-6 animate-spin rounded-full border-2 border-white/10 border-t-white" />
+                    <div className="flex h-32 items-center justify-center gap-3">
+                        <div className="h-5 w-5 animate-spin rounded-full border-2 border-white/20 border-t-white/60" />
+                        <span className="text-xs font-bold uppercase tracking-widest text-white/40">Loading Archive</span>
                     </div>
                 ) : snippets.length === 0 ? (
                     <div className="flex h-full items-center justify-center opacity-10 py-12">
@@ -107,29 +108,25 @@ export default function SnippetsPanel({
                             layout
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="group relative p-5 rounded-xl border border-[#111] bg-[#050505] hover:border-white/20 hover:bg-[#111] transition-all cursor-pointer active:scale-[0.98]"
+                            className="group relative p-6 rounded-none border border-[#111] bg-[#050505] hover:border-white/20 hover:bg-[#111] transition-all cursor-pointer active:scale-[0.98]"
                             onClick={() => onLoadSnippet(snippet.code, snippet.language)}
                         >
-                            <div className="flex flex-col gap-3">
-                                <div className="flex items-start justify-between">
-                                    <div className="min-w-0">
-                                        <h3 className="text-sm font-bold text-white truncate transition-colors uppercase tracking-tight">{snippet.title}</h3>
-                                        <div className="flex items-center gap-3 mt-2">
-                                            <span className="text-[10px] font-mono text-[#888] uppercase tracking-widest font-bold">{snippet.language}</span>
-                                        </div>
-                                    </div>
-                                    <div className="flex gap-2">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteSnippet(snippet._id);
-                                            }}
-                                            className="p-1.5 rounded-md hover:bg-[#222] text-[#444] hover:text-[#ee0000] transition-all"
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </div>
-                                </div>
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteSnippet(snippet._id);
+                                }}
+                                className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[#222] text-[#444] hover:text-[#ee0000] opacity-0 group-hover:opacity-100 transition-all z-10"
+                                title="Delete Snippet"
+                            >
+                                <X size={14} strokeWidth={3} />
+                            </button>
+
+                            <div className="flex flex-col gap-1 pr-6">
+                                <h3 className="text-sm font-bold text-white truncate uppercase tracking-tight">{snippet.title}</h3>
+                                <span className="text-[10px] font-mono text-[#666] uppercase tracking-widest font-bold mt-1 group-hover:text-[#888] transition-colors">
+                                    {snippet.language}
+                                </span>
                             </div>
                         </motion.div>
                     ))

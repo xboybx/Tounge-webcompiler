@@ -2,53 +2,75 @@ import { NextResponse } from 'next/server';
 import { askAI, getAnalysisSystemPrompt } from '@/lib/ai';
 
 export async function POST(req: Request) {
-    try {
-        const { code, language } = await req.json();
-        console.log(`[Analyze API] 🚀 Request received for ${language}. Code length: ${code?.length}`);
+    const encoder = new TextEncoder();
 
-        if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
-            return NextResponse.json({
-                time: "Key Missing",
-                space: "-",
-                explanation: "Please add your GEMINI_API_KEY or OPENROUTER_API_KEY to use AI Analysis.",
-                suggestions: ["Configuration Required"]
-            });
-        }
+    // specific headers for SSE
+    const headers = {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+    };
 
-        const systemPrompt = getAnalysisSystemPrompt(language);
-        const userMessage = "Analyze Time and Space complexity. Return strict JSON.";
+    const stream = new TransformStream();
+    const writer = stream.writable.getWriter();
 
-        console.log("[Analyze API] ⏳ Sending prompt to AI...");
-
+    (async () => {
         try {
-            const textResponse = await askAI(userMessage, code, systemPrompt);
-            console.log(`[Analyze API] 📩 Raw Response (First 100 chars): ${textResponse.substring(0, 100)}...`);
+            const { code, language } = await req.json();
 
-            // Sanitize Code Fences
-            const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
-            const jsonStr = jsonMatch ? jsonMatch[0] : textResponse;
+            // Helper to send data
+            const sendEvent = async (data: Record<string, unknown>) => {
+                await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+            };
 
-            const result = JSON.parse(jsonStr);
-            console.log("[Analyze API] ✅ JSON Parsed Successfully");
-            return NextResponse.json(result);
+            if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
+                await sendEvent({
+                    result: {
+                        time: "Key Missing",
+                        space: "-",
+                        explanation: "Please add your GEMINI_API_KEY or OPENROUTER_API_KEY to use AI Analysis.",
+                        suggestions: ["Configuration Required"]
+                    }
+                });
+                await writer.close();
+                return;
+            }
 
-        } catch (aiError: unknown) {
-            // This now catches the actual API error message (e.g., "429 Rate limit exceeded")
-            const errorMessage = aiError instanceof Error ? aiError.message : String(aiError);
-            console.error(`[Analyze API] ❌ AI Error: ${errorMessage}`);
-            return NextResponse.json({
-                time: "AI Unavailable",
-                space: "AI Unavailable",
-                explanation: `The AI service reported: ${errorMessage}`,
-                suggestions: [
-                    "Switch to 'Local' analyzer in the top right to save tokens.",
-                    "Wait a few minutes and try again when the free quota resets."
-                ]
-            });
+            const systemPrompt = getAnalysisSystemPrompt(language);
+            const userMessage = "Analyze Time and Space complexity. Return strict JSON.";
+
+            try {
+                // Pass status callback to stream updates
+                const textResponse = await askAI(userMessage, code, systemPrompt, async (status) => {
+                    await sendEvent({ status });
+                });
+
+                // Sanitize and Parse Result
+                const jsonMatch = textResponse.match(/\{[\s\S]*\}/);
+                const jsonStr = jsonMatch ? jsonMatch[0] : textResponse;
+                const result = JSON.parse(jsonStr);
+
+                await sendEvent({ result });
+
+            } catch (aiError: unknown) {
+                const errorMessage = aiError instanceof Error ? aiError.message : String(aiError);
+                await sendEvent({
+                    result: {
+                        time: "AI Unavailable",
+                        space: "-",
+                        explanation: `The AI service reported: ${errorMessage}`,
+                        suggestions: ["Try switching to the Local Analyzer or wait for free quota reset."]
+                    }
+                });
+            }
+
+        } catch (error) {
+            console.error("Stream Error:", error);
+            await writer.write(encoder.encode(`data: ${JSON.stringify({ error: "Internal Server Error" })}\n\n`));
+        } finally {
+            await writer.close();
         }
+    })();
 
-    } catch (error: unknown) {
-        console.error("[Analyze API] 🔥 Fatal Server Error:", error);
-        return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-    }
+    return new Response(stream.readable, { headers });
 }

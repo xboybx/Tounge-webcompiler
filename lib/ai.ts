@@ -30,23 +30,63 @@ const FREE_MODELS = [
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
-    return `You are a Senior Algorithm Architect and DSA Specialist. 
-    Task: Exhaustively analyze the ${language} code for Time and Space complexity.
+    return `
+    Example1:[{
+  "language": "Python",
+  "time": "O(n²)",
+  "space": "O(1)",
+  "explanation": "Nested loops checking every pair for two-sum target violates the optimal substructure property; misses hash map memoization opportunity.",
+  "suggestions": [
+    "Replace nested iteration with single-pass hash map storing (target - num) lookups, improving time to O(n) while maintaining O(n) space for the lookup table.",
+    "If input is sorted, use two-pointer technique (left/right indices) to achieve O(n) time with O(1) space, avoiding hash map overhead."
+  ]
+}],
+    Example2:[{
+  "language": "Java",
+  "time": "O(n log n)",
+  "space": "O(n)",
+  "explanation": "Brute-force interval comparison generates O(n²) overlaps; lacks sorting prerequisite that enables greedy linear merging.",
+  "suggestions": [
+    "Sort intervals by start time first, then single-pass merge with stack or in-place pointer, reducing time to O(n log n) dominated by sort, with O(n) output space.",
+    "Consider interval tree or segment tree if queries are dynamic/many, trading O(n log n) construction for O(log n) per-query overlap detection."
+  ]
+}],
+    Example3:[{
+  "language": "C++",
+  "time": "O(n log n)",
+  "space": "O(n)",
+  "explanation": "Full sort of array to find kth largest element is overkill; ignores quickselect or heap properties that exploit partial ordering.",
+  "suggestions": [
+    "Implement quickselect (Hoare's selection) for average O(n) time, O(1) space partitioning, avoiding the log n factor of full sorting.",
+    "Maintain min-heap of size k while streaming elements: O(n log k) time, O(k) space—superior when k << n and dataset doesn't fit memory."
+  ]
+}],
+    Example4:[{
+  "language": "JavaScript",
+  "time": "O(n²)",
+  "space": "O(min(m, n))",
+  "explanation": "Checking all substrings with nested loops and Set.reset() misses sliding window invariant that characters in window are unique.",
+  "suggestions": [
+    "Apply sliding window with two pointers and hash map storing last seen indices, shrinking window on duplicates for O(n) linear scan with O(min(m,n)) charset space.",
+    "If alphabet is limited (ASCII), use fixed-size array[128] instead of hash map for O(1) access and better cache locality."
+  ]
+}],
+    Example5:[{
+  "language": "Go",
+  "time": "O(n)",
+  "space": "O(h)",
+  "explanation": "Recursive DFS on unbalanced binary tree risks O(n) stack overflow; lacks Morris traversal or explicit stack iteration for O(1) space.",
+  "suggestions": [
+    "Convert to iterative inorder traversal using explicit stack slice to control memory, preventing goroutine stack growth and potential overflow on skewed trees.",
+    "If tree is threaded modifiable, implement Morris Traversal for O(1) space O(n) time by temporarily creating links to predecessors."
+  ]
+}],
     
-    Format: Return ONLY a valid JSON object.
-    Schema:
-    {
-      "language": "${language}",
-      "time": "O(...)",
-      "space": "O(...)",
-      "explanation": "Expert-level breakdown of complexity.",
-      "suggestions": ["Tip 1", "Tip 2"]
-    }
-
-    Rules: Avoid conversational filler. Just the JSON.`;
+  
+    `;
 }
 
-const CHAT_SYSTEM_PROMPT = `You are Code Craft AI assistant. Provide concise, accurate responses with Markdown.`;
+const CHAT_SYSTEM_PROMPT = `You are Tounge Code Assistant. Provide concise, accurate responses with Markdown.`;
 
 /**
  * Robust AI Service using OpenRouter with Model Fallback.
@@ -61,7 +101,7 @@ const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({
  * 1. 🚀 Priority: Gemini Pro (User's Personal Key) - Reliable, Fast, High Limits.
  * 2. 🛡️ Fallback: OpenRouter (Community Free Tier) - Shared limits, might be 429'd.
  */
-export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string): Promise<string> {
+export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string, onStatus?: (status: string) => void): Promise<string> {
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
     const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
 
@@ -69,6 +109,7 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
     if (gemini) {
         try {
             console.log(`[AI Service] 💎 Using Gemini Native SDK...`);
+            onStatus?.("Syncing with Tounge Neural Net (Gemini Pro)...");
 
             // Combine prompts for the simple GenerateContent API
             const combinedPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
@@ -83,10 +124,13 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
 
             if (text) {
                 console.log(`[AI Service] ✅ Gemini Success`);
+                onStatus?.("Neural Net handshake successful. Processing data...");
                 return text;
             }
         } catch (error: unknown) {
-            console.error(`[AI Service] ⚠️ Gemini Failed (Falling back to OpenRouter): ${error instanceof Error ? error.message : String(error)}`);
+            const err = error instanceof Error ? error.message : String(error);
+            console.error(`[AI Service] ⚠️ Gemini Failed: ${err}`);
+            onStatus?.(`Gemini connection lost: ${err}. Rerouting...`);
         }
     }
 
@@ -97,10 +141,13 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
     }
 
     let lastErrorMessage = "All models returned empty response";
+    onStatus?.("Engaging backup nodes (OpenRouter Swarm)...");
 
     for (const model of FREE_MODELS) {
         try {
             console.log(`[AI Service] 🤖 Attempting OpenRouter: ${model}...`);
+            onStatus?.(`Routing request to node: ${model.split('/')[1]}...`);
+
             const completion = await openRouter.chat.completions.create({
                 model: model,
                 messages: [
@@ -112,6 +159,7 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
             const content = completion.choices[0]?.message?.content;
             if (content) {
                 console.log(`[AI Service] ✅ Success with ${model}`);
+                onStatus?.(`Node ${model.split('/')[1]} Responded. Finalizing...`);
                 return content;
             }
         } catch (error: unknown) {
@@ -121,9 +169,11 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
             lastErrorMessage = apiError;
 
             console.error(`[AI Service] ❌ ${model} Failed: ${apiError}`);
+            onStatus?.(`Node ${model.split('/')[1]} Unresponsive. Retrying...`);
             // Continue to next model...
         }
     }
 
+    onStatus?.("All neural nodes exhausted.");
     throw new Error(lastErrorMessage);
 }

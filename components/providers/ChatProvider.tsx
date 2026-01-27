@@ -1,24 +1,10 @@
 'use client';
 
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { useState, ReactNode } from 'react';
 import FloatingChat from '@/components/FloatingChat';
+import { ChatContext } from './ChatContext';
 
-interface ChatContextType {
-    isOpen: boolean;
-    openChat: () => void;
-    closeChat: () => void;
-    toggleChat: () => void;
-}
-
-const ChatContext = createContext<ChatContextType | undefined>(undefined);
-
-export function useChat() {
-    const context = useContext(ChatContext);
-    if (context === undefined) {
-        throw new Error('useChat must be used within a ChatProvider');
-    }
-    return context;
-}
+export { useChat } from './ChatContext';
 
 export function ChatProvider({ children }: { children: ReactNode }) {
     const [isOpen, setIsOpen] = useState(false);
@@ -30,7 +16,7 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     return (
         <ChatContext.Provider value={{ isOpen, openChat, closeChat, toggleChat }}>
             {children}
-            <FloatingChat isOpen={isOpen} onClose={closeChat} />
+            <FloatingChat />
         </ChatContext.Provider>
     );
 }
