@@ -12,6 +12,39 @@ export default function Terminal() {
     const fitAddonRef = useRef<FitAddon | null>(null);
     const [isRunning, setIsRunning] = useState(false);
 
+    const executeCommand = (term: XTerm, command: string) => {
+        const parts = command.split(' ');
+        const cmd = parts[0];
+
+        switch (cmd) {
+            case 'clear':
+                term.clear();
+                break;
+            case 'help':
+                term.writeln('\x1b[1;36mAvailable Commands:\x1b[0m');
+                term.writeln('  \x1b[1;32mclear\x1b[0m      - Clear the terminal');
+                term.writeln('  \x1b[1;32mhelp\x1b[0m       - Show this help message');
+                term.writeln('  \x1b[1;32mecho\x1b[0m       - Echo text to terminal');
+                term.writeln('  \x1b[1;32mdate\x1b[0m       - Show current date/time');
+                term.writeln('  \x1b[1;32mwhoami\x1b[0m     - Show current user');
+                break;
+            case 'echo':
+                term.writeln(parts.slice(1).join(' '));
+                break;
+            case 'date':
+                term.writeln(new Date().toString());
+                break;
+            case 'whoami':
+                term.writeln('code-craft-user');
+                break;
+            default:
+                if (command) {
+                    term.writeln(`\x1b[1;31mCommand not found: ${cmd}\x1b[0m`);
+                    term.writeln(`Type '\x1b[1;32mhelp\x1b[0m' for available commands`);
+                }
+        }
+    };
+
     useEffect(() => {
         if (!terminalRef.current) return;
 
@@ -61,8 +94,7 @@ export default function Terminal() {
         term.write('\n\x1b[1;33m$\x1b[0m ');
 
         let currentLine = '';
-        let commandHistory: string[] = [];
-        let historyIndex = -1;
+        const commandHistory: string[] = [];
 
         // Handle user input
         term.onData((data) => {
@@ -73,7 +105,6 @@ export default function Terminal() {
                 term.write('\r\n');
                 if (currentLine.trim()) {
                     commandHistory.push(currentLine);
-                    historyIndex = commandHistory.length;
                     executeCommand(term, currentLine.trim());
                 }
                 currentLine = '';
@@ -109,39 +140,6 @@ export default function Terminal() {
             term.dispose();
         };
     }, []);
-
-    const executeCommand = (term: XTerm, command: string) => {
-        const parts = command.split(' ');
-        const cmd = parts[0];
-
-        switch (cmd) {
-            case 'clear':
-                term.clear();
-                break;
-            case 'help':
-                term.writeln('\x1b[1;36mAvailable Commands:\x1b[0m');
-                term.writeln('  \x1b[1;32mclear\x1b[0m      - Clear the terminal');
-                term.writeln('  \x1b[1;32mhelp\x1b[0m       - Show this help message');
-                term.writeln('  \x1b[1;32mecho\x1b[0m       - Echo text to terminal');
-                term.writeln('  \x1b[1;32mdate\x1b[0m       - Show current date/time');
-                term.writeln('  \x1b[1;32mwhoami\x1b[0m     - Show current user');
-                break;
-            case 'echo':
-                term.writeln(parts.slice(1).join(' '));
-                break;
-            case 'date':
-                term.writeln(new Date().toString());
-                break;
-            case 'whoami':
-                term.writeln('code-craft-user');
-                break;
-            default:
-                if (command) {
-                    term.writeln(`\x1b[1;31mCommand not found: ${cmd}\x1b[0m`);
-                    term.writeln(`Type '\x1b[1;32mhelp\x1b[0m' for available commands`);
-                }
-        }
-    };
 
     const handleRun = () => {
         if (xtermRef.current) {
@@ -229,7 +227,7 @@ export default function Terminal() {
                     </button>
                     <button
                         onClick={handleClear}
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-500/20 hover:text-red-500"
                         title="Clear terminal"
                     >
                         <Trash2 className="h-4 w-4" />

@@ -32,14 +32,14 @@ export async function POST(req: Request) {
             console.log("[Analyze API] ✅ JSON Parsed Successfully");
             return NextResponse.json(result);
 
-        } catch (aiError: any) {
+        } catch (aiError: unknown) {
             // This now catches the actual API error message (e.g., "429 Rate limit exceeded")
-            console.error(`[Analyze API] ❌ AI Error: ${aiError.message}`);
-
+            const errorMessage = aiError instanceof Error ? aiError.message : String(aiError);
+            console.error(`[Analyze API] ❌ AI Error: ${errorMessage}`);
             return NextResponse.json({
                 time: "AI Unavailable",
-                space: "-",
-                explanation: `The AI service reported: ${aiError.message}`,
+                space: "AI Unavailable",
+                explanation: `The AI service reported: ${errorMessage}`,
                 suggestions: [
                     "Switch to 'Local' analyzer in the top right to save tokens.",
                     "Wait a few minutes and try again when the free quota resets."
@@ -47,7 +47,7 @@ export async function POST(req: Request) {
             });
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[Analyze API] 🔥 Fatal Server Error:", error);
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
     }

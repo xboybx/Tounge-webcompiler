@@ -24,10 +24,10 @@ export async function GET(
             success: true,
             data: snippet,
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching snippet:', error);
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
@@ -61,10 +61,10 @@ export async function PUT(
             data: snippet,
             message: 'Snippet updated successfully',
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error updating snippet:', error);
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
@@ -92,10 +92,10 @@ export async function DELETE(
             success: true,
             message: 'Snippet deleted successfully',
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error deleting snippet:', error);
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }

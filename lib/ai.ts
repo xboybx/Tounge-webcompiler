@@ -63,7 +63,7 @@ const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({
  */
 export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string): Promise<string> {
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
-    let userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
+    const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
 
     // --- 1. Try Gemini (If Configured) ---
     if (gemini) {
@@ -85,8 +85,8 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
                 console.log(`[AI Service] ✅ Gemini Success`);
                 return text;
             }
-        } catch (error: any) {
-            console.error(`[AI Service] ⚠️ Gemini Failed (Falling back to OpenRouter): ${error.message}`);
+        } catch (error: unknown) {
+            console.error(`[AI Service] ⚠️ Gemini Failed (Falling back to OpenRouter): ${error instanceof Error ? error.message : String(error)}`);
         }
     }
 
@@ -114,9 +114,10 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
                 console.log(`[AI Service] ✅ Success with ${model}`);
                 return content;
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             // Extract the actual error message from OpenRouter API
-            const apiError = error.error?.message || error.message || "Unknown error";
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const apiError = (error as any).error?.message || (error as any).message || "Unknown error";
             lastErrorMessage = apiError;
 
             console.error(`[AI Service] ❌ ${model} Failed: ${apiError}`);

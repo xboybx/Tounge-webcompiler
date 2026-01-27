@@ -69,10 +69,10 @@ export async function POST(request: NextRequest) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Execution error:', error);
         return NextResponse.json(
-            { success: false, error: error.message || 'System failed to execute code' },
+            { success: false, error: error instanceof Error ? error.message : 'System failed to execute code' },
             { status: 500 }
         );
     }

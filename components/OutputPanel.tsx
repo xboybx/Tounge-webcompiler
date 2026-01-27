@@ -1,8 +1,7 @@
-'use client';
-
-import { Terminal, AlertCircle, Cpu, Clock, Sparkles, Columns, Rows, CheckCircle2, ChartLine, AlertTriangle, Lightbulb } from 'lucide-react';
+import { Terminal, AlertCircle, Sparkles, Columns, Rows, CheckCircle2, ChartLine, Lightbulb, Trash } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 
 interface OutputPanelProps {
     output: string;
@@ -17,6 +16,7 @@ interface OutputPanelProps {
     } | null;
     terminalPosition: 'right' | 'bottom';
     onTogglePosition: () => void;
+    onClear?: () => void;
     codeContext?: string;
     language?: string;
 }
@@ -29,33 +29,19 @@ export default function OutputPanel({
     complexity,
     terminalPosition,
     onTogglePosition,
+    onClear,
     codeContext = "",
     language = "javascript"
 }: OutputPanelProps) {
     const [aiComplexity, setAiComplexity] = useState<{ time: string, space: string, explanation?: string, suggestions?: string | string[] } | null>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
-    const [aiError, setAiError] = useState(false);
-    const [aiMode, setAiMode] = useState(true); // Default ON
+    const [aiMode, setAiMode] = useState(false); // Default OFF
 
     const activeStats = aiMode ? aiComplexity : complexity;
 
-    useEffect(() => {
-        // Reset state when a new run starts
-        if (isRunning) {
-            setAiComplexity(null);
-            setAiError(false);
-        }
-
-        // Auto-run AI analysis if not running, context exists, mode is ON, and no result yet
-        if (!isRunning && codeContext && aiMode && !aiComplexity && output) {
-            handleDeepAnalyze();
-        }
-    }, [isRunning]);
-
-    const handleDeepAnalyze = async () => {
+    const handleDeepAnalyze = useCallback(async () => {
         if (isAnalyzing || !codeContext) return;
         setIsAnalyzing(true);
-        setAiError(false);
         try {
             const res = await fetch('/api/analyze', {
                 method: 'POST',
@@ -65,13 +51,24 @@ export default function OutputPanel({
             const data = await res.json();
 
             if (data.time) setAiComplexity(data);
-            else setAiError(true);
-        } catch (e) {
-            setAiError(true);
+        } catch {
+            // Error handled by state reset or UI
         } finally {
             setIsAnalyzing(false);
         }
-    };
+    }, [isAnalyzing, codeContext, language]);
+
+    useEffect(() => {
+        // Reset state when a new run starts
+        if (isRunning) {
+            setAiComplexity(null);
+        }
+
+        // Auto-run AI analysis if not running, context exists, mode is ON, and no result yet
+        if (!isRunning && codeContext && aiMode && !aiComplexity && output) {
+            handleDeepAnalyze();
+        }
+    }, [isRunning, codeContext, aiMode, aiComplexity, output, handleDeepAnalyze]);
 
     const toggleAiMode = () => {
         setAiMode(!aiMode);
@@ -118,21 +115,16 @@ export default function OutputPanel({
                         )}
                     </button>
 
-                    {(activeStats || executionTime !== null) && (
-                        <div className="flex items-center gap-6 mr-2">
-
-                            {/* Complexity Stats Removed from Header */}
-
-                            {/* Runtime moved to output bottom */}
-                        </div>
+                    {/* Clear Button - Always Visible if onClear exists */}
+                    {onClear && (
+                        <button
+                            onClick={onClear}
+                            className="flex items-center gap-2 px-2 py-1 rounded-lg transition-all text-white/30 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95"
+                            title="Clear Output"
+                        >
+                            <Trash size={18} strokeWidth={3} />
+                        </button>
                     )}
-
-                    <div className="flex items-center gap-3 px-4 py-2 rounded-full border border-white/5 bg-white/2">
-                        <div className={`h-1.5 w-1.5 rounded-full ${isRunning ? 'bg-[#00a3ff] animate-pulse shadow-[0_0_10px_#00a3ff]' : 'bg-[#32a852]'}`} />
-                        <span className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
-                            {isRunning ? 'Processing' : 'Sys Online'}
-                        </span>
-                    </div>
                 </div>
             </div>
 

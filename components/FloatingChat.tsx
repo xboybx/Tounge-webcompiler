@@ -3,10 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-    ChatBubbleLeftRightIcon,
     XMarkIcon,
     PaperAirplaneIcon,
-    SparklesIcon,
     ArrowsPointingOutIcon,
     ArrowsPointingInIcon
 } from '@heroicons/react/24/solid';
@@ -78,7 +76,7 @@ export default function FloatingChat({ isOpen, onClose }: { isOpen: boolean; onC
             };
 
             setMessages(prev => [...prev, aiMsg]);
-        } catch (error) {
+        } catch {
             setMessages(prev => [...prev, {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',

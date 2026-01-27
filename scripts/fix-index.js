@@ -1,3 +1,4 @@
+/* eslint-disable */
 // Run this script to fix the MongoDB text index issue
 // Usage: node scripts/fix-index.js
 

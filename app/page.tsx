@@ -8,27 +8,19 @@ import {
   Upload,
   Save,
   PanelRightClose,
-  Settings,
-  Menu,
-  ChevronLeft,
-  ChevronRight,
   ChevronDown,
   Code2,
   Sun,
   Moon,
-  Layout,
-  Columns,
-  Rows,
   X,
-  Brain,
   Sparkles,
 } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import SnippetsPanel from '@/components/SnippetsPanel';
 import OutputPanel from '@/components/OutputPanel';
+import Image from 'next/image';
 
-import { h2 } from 'framer-motion/client';
 import { useChat } from '@/components/providers/ChatProvider';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), { ssr: false });
@@ -101,15 +93,7 @@ echo "Welcome to PHP Compiler!\n";
 `,
 };
 
-interface Snippet {
-  _id: string;
-  title: string;
-  description?: string;
-  language: string;
-  code: string;
-  tags?: string[];
-  createdAt: string;
-}
+
 
 export default function Home() {
   const [code, setCode] = useState(DEFAULT_CODE.javascript);
@@ -172,8 +156,8 @@ export default function Home() {
       } else {
         setError(data.error);
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to execute code');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to execute code');
     } finally {
       setIsRunning(false);
     }
@@ -243,12 +227,15 @@ export default function Home() {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.js,.ts,.py,.java,.cpp,.go,.rs,.cs,.php,.txt';
-    input.onchange = (e: any) => {
-      const file = e.target.files[0];
+    input.onchange = (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      const file = target.files?.[0];
       if (file) {
         const reader = new FileReader();
-        reader.onload = (event: any) => {
-          setCode(event.target.result);
+        reader.onload = (event: ProgressEvent<FileReader>) => {
+          if (event.target?.result) {
+            setCode(event.target.result as string);
+          }
         };
         reader.readAsText(file);
       }
@@ -269,8 +256,8 @@ export default function Home() {
       <header className="flex h-20 items-center justify-between border-b border-[#222] bg-black px-8 shrink-0 relative z-30">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-4 text-white uppercase tracking-tighter">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.8)] bg-linear-to-b from-zinc-800 via-black to-black border border-white/10 p-1.5">
-              <img src="/apple-icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.8)] bg-linear-to-b from-zinc-800 via-black to-black border border-white/10 p-1.5 font-bold">
+              <img src="/icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
             </div>
             <span className="text-xl font-black hidden sm:block">Tounge</span>
           </div>
@@ -374,10 +361,7 @@ export default function Home() {
               <div className="w-[340px] h-full">
                 <SnippetsPanel
                   onLoadSnippet={handleLoadSnippet}
-                  currentCode={code}
-                  currentLanguage={language}
                   isExpanded={true}
-                  onToggle={() => setShowSnippets(false)}
                   refreshTrigger={snippetsRefresh}
                 />
               </div>
@@ -394,7 +378,6 @@ export default function Home() {
               value={code}
               onChange={setCode}
               language={language}
-              theme={theme}
             />
           </Panel>
 
@@ -411,6 +394,12 @@ export default function Home() {
               complexity={complexity}
               terminalPosition={terminalPosition}
               onTogglePosition={() => setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right')}
+              onClear={() => {
+                setOutput('');
+                setError(null);
+                setExecutionTime(null);
+                setComplexity(null);
+              }}
               codeContext={code}
               language={language}
             />

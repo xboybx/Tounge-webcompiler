@@ -264,7 +264,7 @@ function analyzePython(code: string): ComplexityResult {
 // --------------------------------------------------------------------------
 
 function normalizeTime(t: string): string {
-    let norm = t.replace(/n/g, 'N').replace('logN', 'log N');
+    const norm = t.replace(/n/g, 'N').replace('logN', 'log N');
     if (norm === "O(N^2)") return "O(N²)";
     if (norm === "O(N logN)") return "O(N log N)";
     return norm;

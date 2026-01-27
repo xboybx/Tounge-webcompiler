@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '50');
         const skip = parseInt(searchParams.get('skip') || '0');
 
-        let query: any = {};
+        interface SnippetQuery {
+            language?: string;
+            $text?: { $search: string };
+        }
+        const query: SnippetQuery = {};
 
         if (language) {
             query.language = language;
@@ -41,10 +45,10 @@ export async function GET(request: NextRequest) {
                 hasMore: skip + snippets.length < total,
             },
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error fetching snippets:', error);
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }
@@ -81,10 +85,10 @@ export async function POST(request: NextRequest) {
             },
             { status: 201 }
         );
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Error creating snippet:', error);
         return NextResponse.json(
-            { success: false, error: error.message },
+            { success: false, error: error instanceof Error ? error.message : String(error) },
             { status: 500 }
         );
     }

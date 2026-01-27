@@ -1,0 +1,13 @@
+
+> code-craft@0.1.0 lint
+> eslint
+
+
+D:\Dev Workspace\Tounge Compiler\components\FloatingChat.tsx
+  79:18  warning  'error' is defined but never used  @typescript-eslint/no-unused-vars
+
+D:\Dev Workspace\Tounge Compiler\components\OutputPanel.tsx
+  54:18  warning  '_e' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+

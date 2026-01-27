@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect } from 'react';
-import Editor from '@monaco-editor/react';
+import Editor, { Monaco } from '@monaco-editor/react';
 import { editor } from 'monaco-editor';
 
 interface CodeEditorProps {
@@ -11,7 +11,7 @@ interface CodeEditorProps {
     theme?: 'vs-dark' | 'light';
 }
 
-export default function CodeEditor({ value, onChange, language, theme = 'vs-dark' }: CodeEditorProps) {
+export default function CodeEditor({ value, onChange, language }: CodeEditorProps) {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -46,7 +46,7 @@ export default function CodeEditor({ value, onChange, language, theme = 'vs-dark
         onChange(value || '');
     };
 
-    const handleBeforeMount = (monaco: any) => {
+    const handleBeforeMount = (monaco: Monaco) => {
         monaco.editor.defineTheme('noir', {
             base: 'vs-dark',
             inherit: true,
@@ -89,6 +89,7 @@ export default function CodeEditor({ value, onChange, language, theme = 'vs-dark
                     acceptSuggestionOnEnter: 'on',
                     quickSuggestions: true,
                     padding: { top: 16, bottom: 16 },
+                    fontFamily: "var(--font-jetbrains-mono), 'JetBrains Mono', 'Fira Code', monospace",
                 }}
             />
         </div>

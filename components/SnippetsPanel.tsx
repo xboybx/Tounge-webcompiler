@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Save, X, Search, Tag, Calendar, Menu, Play } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { X, Search } from 'lucide-react';
+import { motion } from 'framer-motion';
 
 interface Snippet {
     _id: string;
@@ -16,31 +16,23 @@ interface Snippet {
 
 interface SnippetsPanelProps {
     onLoadSnippet: (code: string, language: string) => void;
-    currentCode: string;
-    currentLanguage: string;
     isExpanded: boolean;
-    onToggle: () => void;
     refreshTrigger?: number;
 }
 
 export default function SnippetsPanel({
     onLoadSnippet,
-    currentCode,
-    currentLanguage,
     isExpanded,
-    onToggle,
     refreshTrigger
 }: SnippetsPanelProps) {
     const [snippets, setSnippets] = useState<Snippet[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterLanguage, setFilterLanguage] = useState<string>('');
 
-    const fetchSnippets = async () => {
+    const fetchSnippets = useCallback(async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams();
-            if (filterLanguage) params.append('language', filterLanguage);
             if (searchQuery) params.append('search', searchQuery);
 
             const response = await fetch(`/api/snippets?${params.toString()}`);
@@ -54,13 +46,13 @@ export default function SnippetsPanel({
         } finally {
             setLoading(false);
         }
-    };
+    }, [searchQuery]);
 
     useEffect(() => {
         if (isExpanded) {
             fetchSnippets();
         }
-    }, [filterLanguage, searchQuery, isExpanded, refreshTrigger]);
+    }, [searchQuery, isExpanded, refreshTrigger, fetchSnippets]);
 
     const handleDeleteSnippet = async (id: string) => {
         if (!confirm('Eliminate this snippet?')) return;
