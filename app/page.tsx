@@ -27,8 +27,9 @@ import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import SnippetsPanel from '@/components/SnippetsPanel';
 import OutputPanel from '@/components/OutputPanel';
-import FloatingChat from '@/components/FloatingChat';
+
 import { h2 } from 'framer-motion/client';
+import { useChat } from '@/components/providers/ChatProvider';
 
 const CodeEditor = dynamic(() => import('@/components/CodeEditor'), { ssr: false });
 
@@ -131,7 +132,7 @@ export default function Home() {
     tags: '',
   });
 
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const { isOpen: isChatOpen, toggleChat } = useChat();
 
   const currentLanguage = LANGUAGES.find(l => l.id === language);
 
@@ -349,7 +350,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Workspace */}
       <main className="flex flex-1 overflow-hidden">
         {/* Sidebar Toggle Bar */}
         <div className="w-16 flex items-end justify-center flex-wrap pt-20 border-r border-[#222] bg-black shrink-0">
@@ -491,8 +491,6 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      <FloatingChat isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
-
       {/* Minimal Footer */}
       <footer className="h-12 flex items-center justify-between border-t border-[#222] bg-black px-6 text-xs shrink-0">
         <div className="flex items-center gap-8 text-white font-bold">
@@ -508,7 +506,7 @@ export default function Home() {
 
 
           <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
+            onClick={toggleChat}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#FFD700] text-[#FFD700] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
           >
             <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#FFD700]" : ""} />
