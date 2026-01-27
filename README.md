@@ -1,8 +1,10 @@
 # Code Craft Compiler
 -fix ai models
+-fix ui bugs
+
 A powerful, modern **code compiler** and execution engine for multiple programming languages, built with Next.js and TypeScript.
 
-![Code Craft](https://img.shields.io/badge/Code-Craft-blue?style=for-the-badge)
+![Tounge](https://img.shields.io/badge/Tounge-blue?style=for-the-badge)
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
 

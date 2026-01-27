@@ -25,7 +25,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "Code Craft | Premium Code Compiler",
+  title: "Tounge Compiler | Premium Code Compiler",
   description: "A professional-grade code editor and compiler for multiple languages.",
   icons: {
     icon: [
