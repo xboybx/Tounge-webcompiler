@@ -8,10 +8,10 @@ interface CodeEditorProps {
     value: string;
     onChange: (value: string) => void;
     language: string;
-    theme?: 'vs-dark' | 'light';
+    theme?: string;
 }
 
-export default function CodeEditor({ value, onChange, language }: CodeEditorProps) {
+export default function CodeEditor({ value, onChange, language, theme }: CodeEditorProps) {
     const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -52,10 +52,10 @@ export default function CodeEditor({ value, onChange, language }: CodeEditorProp
             inherit: true,
             rules: [],
             colors: {
-                'editor.background': '#1e1e1e',
-                'editor.lineHighlightBackground': '#2a2d2e',
-                'editorGutter.background': '#111111',
-                'editorLineNumber.foreground': '#858585',
+                'editor.background': '#000000',
+                'editor.lineHighlightBackground': '#111111',
+                'editorGutter.background': '#000000',
+                'editorLineNumber.foreground': '#444444',
                 'editorLineNumber.activeForeground': '#ffffff',
                 'scrollbarSlider.background': '#ffffff08',
                 'scrollbarSlider.hoverBackground': '#ffffff15',
@@ -65,12 +65,12 @@ export default function CodeEditor({ value, onChange, language }: CodeEditorProp
     };
 
     return (
-        <div ref={containerRef} className="h-full w-full overflow-hidden bg-black">
+        <div ref={containerRef} className={`h-full w-full overflow-hidden ${theme === 'vs-dark' ? 'bg-[#1e1e1e]' : 'bg-black'}`}>
             <Editor
                 height="100%"
                 language={language}
                 value={value}
-                theme="noir"
+                theme={theme || 'vs-dark'}
                 onChange={handleEditorChange}
                 onMount={handleEditorDidMount}
                 beforeMount={handleBeforeMount}

@@ -21,12 +21,13 @@ const openRouter = new OpenAI({
  * (Google, Meta, Mistral, Qwen) to maximize chances of finding a free slot.
  */
 const FREE_MODELS = [
-    "google/gemini-2.0-flash-exp:free",      // Google (Flash)
-    "meta-llama/llama-3.3-70b-instruct:free", // Meta (Cloudflare/Together)
-    "mistralai/mistral-small-3.1-24b-instruct:free", // Mistral
-    "qwen/qwen2.5-72b-instruct:free",        // Qwen
-    "deepseek/deepseek-chat:free",           // DeepSeek
-    "microsoft/phi-3-medium-128k-instruct:free" // Microsoft
+    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-2.0-flash-thinking-exp:free", // Added thinking model
+    "meta-llama/llama-3-8b-instruct:free",       // Switched to 8b (more reliable than 70b)
+    "mistralai/mistral-7b-instruct:free",        // Switched to 7b standard
+    "microsoft/phi-3-mini-128k-instruct:free",   // Switched to mini
+    "huggingfaceh4/zephyr-7b-beta:free",         // Reliable backup
+    "openchat/openchat-7:free",                  // Another backup
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
@@ -128,9 +129,12 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
                 return text;
             }
         } catch (error: unknown) {
+            // Check for specific Gemini error properties
             const err = error instanceof Error ? error.message : String(error);
-            console.error(`[AI Service] ⚠️ Gemini Failed: ${err}`);
-            onStatus?.(`Gemini connection lost: ${err}. Rerouting...`);
+            const status = (error as any)?.status || (error as any)?.response?.status || 'Unknown Status';
+
+            console.error(`[AI Service] ⚠️ Gemini Failed [${status}]: ${err}`);
+            onStatus?.(`Gemini connection lost [${status}]. Rerouting...`);
         }
     }
 
@@ -163,17 +167,26 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
                 return content;
             }
         } catch (error: unknown) {
-            // Extract the actual error message from OpenRouter API
+            // Extract the actual error message and status code from OpenRouter API
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const apiError = (error as any).error?.message || (error as any).message || "Unknown error";
-            lastErrorMessage = apiError;
+            const statusCode = (error as any).status || (error as any).response?.status || 'No Code';
 
-            console.error(`[AI Service] ❌ ${model} Failed: ${apiError}`);
-            onStatus?.(`Node ${model.split('/')[1]} Unresponsive. Retrying...`);
+            lastErrorMessage = `[${statusCode}] ${apiError}`;
+
+            console.error(`[AI Service] ❌ ${model} Failed [${statusCode}]: ${apiError}`);
+            // Don't clutter status UI with full error details, just retry message
+            onStatus?.(`Node ${model.split('/')[1]} Unresponsive [${statusCode}]. Retrying...`);
             // Continue to next model...
         }
     }
 
     onStatus?.("All neural nodes exhausted.");
+
+    // Provide a helpful hint in the final error
+    if (lastErrorMessage.includes('429') || lastErrorMessage.includes('Rate limit')) {
+        throw new Error(`Rate Limit Exceeded: OpenRouter free tier is busy. ${lastErrorMessage}`);
+    }
+
     throw new Error(lastErrorMessage);
 }

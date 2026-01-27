@@ -2,8 +2,8 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Code Craft Compiler',
-        short_name: 'Code Craft',
+        name: 'Tounge Compiler',
+        short_name: 'Tounge',
         description: 'A premium, lightweight code editor and compiler engine.',
         start_url: '/',
         display: 'standalone',

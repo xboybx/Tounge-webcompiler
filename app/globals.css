@@ -62,15 +62,7 @@ body {
   background: var(--accents-3);
 }
 
-/* Monaco Editor Adjustments */
-.monaco-editor {
-  background-color: var(--background) !important;
-}
 
-.monaco-editor .margin {
-  background-color: var(--background) !important;
-  border-right: 1px solid var(--accents-1) !important;
-}
 
 /* Selection */
 ::selection {
@@ -117,17 +109,15 @@ button {
   outline: none;
 }
 
-/* In your global.css or a dedicated CSS module */
-.monaco-editor .margin-view-overlays {
-  /* Or a more specific Monaco class */
+/* .monaco-editor .margin-view-overlays {
   background-color: #1e1e1e !important;
-  /* Use !important if necessary, but try to avoid it */
-}
+} */
 
 @keyframes shimmer {
   0% {
     background-position: 200% 0;
   }
+
   100% {
     background-position: -200% 0;
   }

@@ -98,7 +98,7 @@ echo "Welcome to PHP Compiler!\n";
 export default function Home() {
   const [code, setCode] = useState(DEFAULT_CODE.javascript);
   const [language, setLanguage] = useState('javascript');
-  const [theme, setTheme] = useState<'vs-dark' | 'light'>('vs-dark');
+  const [theme, setTheme] = useState<'vs-dark' | 'noir'>('vs-dark');
   const [showSnippets, setShowSnippets] = useState(false);
   const [terminalPosition, setTerminalPosition] = useState<'right' | 'bottom'>('right');
   const [isRunning, setIsRunning] = useState(false);
@@ -327,7 +327,7 @@ export default function Home() {
               <Download size={20} strokeWidth={3} />
             </button>
             <button
-              onClick={() => setTheme(theme === 'vs-dark' ? 'light' : 'vs-dark')}
+              onClick={() => setTheme(theme === 'vs-dark' ? 'noir' : 'vs-dark')}
               className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
               title="Theme"
             >
@@ -378,6 +378,7 @@ export default function Home() {
               value={code}
               onChange={setCode}
               language={language}
+              theme={theme}
             />
           </Panel>
 

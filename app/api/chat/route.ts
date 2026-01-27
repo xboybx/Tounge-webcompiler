@@ -21,10 +21,11 @@ export async function POST(req: Request) {
         const reply = await askAI(message, contextCode);
         return NextResponse.json({ reply });
 
-    } catch (error) {
+    } catch (error: unknown) {
         console.error("Chat Route Error:", error);
+        const errorMessage = error instanceof Error ? error.message : "Connect Error";
         return NextResponse.json({
-            reply: "🤖 **Assistant**: I'm having trouble connecting to OpenRouter (All free models busy). Please try later!"
+            reply: `🤖 **System Alert**: ${errorMessage}`
         });
     }
 }
