@@ -25,9 +25,7 @@ const FREE_MODELS = [
     "google/gemini-2.0-flash-thinking-exp:free", // Added thinking model
     "meta-llama/llama-3-8b-instruct:free",       // Switched to 8b (more reliable than 70b)
     "mistralai/mistral-7b-instruct:free",        // Switched to 7b standard
-    "microsoft/phi-3-mini-128k-instruct:free",   // Switched to mini
-    "huggingfaceh4/zephyr-7b-beta:free",         // Reliable backup
-    "openchat/openchat-7:free",                  // Another backup
+
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
