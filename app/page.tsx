@@ -260,19 +260,27 @@ export default function Home() {
       e.preventDefault();
       handleRunCode();
     }
-    // Close sidebar on Escape
-    if (e.key === 'Escape' && showSnippets) {
-      setShowSnippets(false);
+    if (e.key === 'F8') {
+      e.preventDefault();
+      handleRunCode();
+    }
+    // Toggle sidebar on Escape, or close save dialog if open
+    if (e.key === 'Escape') {
+      if (showSaveDialog) {
+        setShowSaveDialog(false);
+      } else {
+        setShowSnippets(prev => !prev);
+      }
     }
   };
 
   return (
     <div className="flex h-screen flex-col bg-black text-white font-sans selection:bg-white/20" onKeyDown={handleKeyDown}>
       {/* Vercel Noir Header - Refined 2026 */}
-      <header className="flex h-20 items-center justify-between border-b border-[#222] bg-black px-5 shrink-0 relative z-30">
+      <header className="flex h-14 items-center justify-between border-b border-[#222] bg-black px-5 shrink-0 relative z-30">
         <div className="flex items-center gap-8">
           <div className="flex items-center gap-4 text-white uppercase tracking-tighter">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 shadow-[0_4px_24px_rgba(0,0,0,0.8)] bg-linear-to-b from-zinc-800 via-black to-black border border-white/10 p-1.5 font-bold">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 border-white/10 p-1.5 font-bold">
               <img src="/icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
             </div>
             <span className="text-xl font-black hidden sm:block">Tounge</span>
@@ -527,6 +535,11 @@ export default function Home() {
           </div>
           <span className="text-[#333]">|</span>
           <span className="uppercase tracking-widest text-[#888]">{currentLanguage?.name}</span>
+          <span className="text-[#333]">|</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] -2">AI : Ctrl + Q</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px]">Chat Min/Max : Ctrl + F</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] flex items-center justify-center gap-2"><PanelRightClose size={18} /> : ESC</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px]">Run: Ctrl + F8</span>
         </div>
 
         <div className="flex items-center gap-2 text-white font-bold uppercase tracking-widest">
