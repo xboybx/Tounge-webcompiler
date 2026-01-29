@@ -13,6 +13,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
     const closeChat = () => setIsOpen(false);
     const toggleChat = () => setIsOpen((prev) => !prev);
 
+    React.useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Shortcut: Ctrl+Q (or Cmd+Q) to Toggle Chat
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'q') {
+                e.preventDefault();
+                setIsOpen(prev => !prev);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, []); // Removed isOpen from dependency array as it's not directly used in the effect's logic anymore, and setIsOpen with functional update doesn't need it.
+
     return (
         <ChatContext.Provider value={{ isOpen, openChat, closeChat, toggleChat }}>
             {children}

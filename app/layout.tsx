@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
-});
+}); 
 
 const poppins = Poppins({
   variable: "--font-poppins",

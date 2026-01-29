@@ -63,7 +63,7 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
             const combinedPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
 
             const response = await gemini.models.generateContent({
-                model: "gemini-2.0-flash-exp",
+                model: "gemini-1.5-flash",
                 contents: combinedPrompt,
             });
 
@@ -133,6 +133,74 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
     // Provide a helpful hint in the final error
     if (lastErrorMessage.includes('429') || lastErrorMessage.includes('Rate limit')) {
         throw new Error(`Rate Limit Exceeded: OpenRouter free tier is busy. ${lastErrorMessage}`);
+    }
+
+    throw new Error(lastErrorMessage);
+}
+
+/**
+ * Streamed AI Service with Fallback
+ */
+export async function* streamAI(message: string, contextCode?: string, systemPromptOverride?: string): AsyncGenerator<string, void, unknown> {
+    const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
+    const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
+    const combinedPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
+
+    // --- 1. Try Gemini (If Configured) ---
+    if (gemini) {
+        try {
+            console.log(`[AI Stream] 💎 Using Gemini...`);
+
+            const result = await gemini.models.generateContentStream({
+                model: "gemini-1.5-flash",
+                contents: combinedPrompt,
+            });
+
+            for await (const chunk of result) {
+                // Handle different SDK versions where text might be a method or property
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const val = (chunk as any).text;
+                const chunkText = typeof val === 'function' ? val.call(chunk) : val;
+
+                if (chunkText) yield chunkText;
+            }
+            return;
+        } catch (error: unknown) {
+            console.error(`[AI Stream] ⚠️ Gemini Failed:`, error);
+        }
+    }
+
+    // --- 2. Fallback to OpenRouter ---
+    if (!process.env.OPENROUTER_API_KEY && !gemini) {
+        throw new Error("MISSING_API_KEYS: Please set GEMINI_API_KEY or OPENROUTER_API_KEY");
+    }
+
+    let lastErrorMessage = "All models returned empty response";
+
+    for (const model of FREE_MODELS) {
+        try {
+            console.log(`[AI Stream] 🤖 Attempting OpenRouter: ${model}...`);
+
+            const completion = await openRouter.chat.completions.create({
+                model: model,
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: userPrompt }
+                ],
+                stream: true,
+            });
+
+            for await (const chunk of completion) {
+                const content = chunk.choices[0]?.delta?.content;
+                if (content) yield content;
+            }
+            return;
+        } catch (error: unknown) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const apiError = (error as any).error?.message || (error as any).message || "Unknown error";
+            lastErrorMessage = apiError;
+            console.error(`[AI Stream] ❌ ${model} Failed:`, apiError);
+        }
     }
 
     throw new Error(lastErrorMessage);

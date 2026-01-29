@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -117,6 +117,18 @@ export default function Home() {
   });
 
   const { isOpen: isChatOpen, toggleChat } = useChat();
+  const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
+        setIsLanguageMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const currentLanguage = LANGUAGES.find(l => l.id === language);
 
@@ -248,6 +260,10 @@ export default function Home() {
       e.preventDefault();
       handleRunCode();
     }
+    // Close sidebar on Escape
+    if (e.key === 'Escape' && showSnippets) {
+      setShowSnippets(false);
+    }
   };
 
   return (
@@ -264,23 +280,47 @@ export default function Home() {
 
           <div className="h-6 w-px bg-[#222] hidden sm:block" />
 
-          <div className="flex items-center gap-3">
-            <span className="text-xs font-bold text-white uppercase tracking-wider hidden sm:block">{currentLanguage?.name}</span>
-            <div className="relative flex items-center justify-center h-8 w-8 rounded-full hover:bg-[#111] transition-all cursor-pointer">
-              <ChevronDown size={16} strokeWidth={3} className="text-white relative z-0" />
-              <select
-                value={language}
-                onChange={(e) => handleLanguageChange(e.target.value)}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                title="Change Language"
-              >
-                {LANGUAGES.map((lang) => (
-                  <option key={lang.id} value={lang.id} className="bg-black text-white">
-                    {lang.name}
-                  </option>
-                ))}
-              </select>
+          <div ref={languageMenuRef} className="relative z-50">
+            <div
+              onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
+              className={`flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg transition-all border ${isLanguageMenuOpen ? 'bg-[#111] border-[#222] text-white' : 'border-transparent hover:bg-[#111] text-white/70 hover:text-white'}`}
+            >
+              <span className="text-xs font-bold uppercase tracking-wider hidden sm:block select-none">{currentLanguage?.name}</span>
+              <ChevronDown
+                size={16}
+                strokeWidth={3}
+                className={`transition-transform duration-300 ${isLanguageMenuOpen ? 'rotate-180 text-white' : 'text-white/50 group-hover:text-white'}`}
+              />
             </div>
+
+            <AnimatePresence>
+              {isLanguageMenuOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 8, listStyle: 'none' }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 8 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute top-full left-0 mt-2 w-56 bg-[#050505] border border-[#222] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 overflow-hidden flex flex-col"
+                >
+                  <span className="px-4 py-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[#444] select-none">Select Runtime</span>
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.id}
+                      onClick={() => {
+                        handleLanguageChange(lang.id);
+                        setIsLanguageMenuOpen(false);
+                      }}
+                      className={`w-full text-left px-4 py-2.5 text-xs font-bold uppercase tracking-wider hover:bg-[#111] transition-all flex items-center justify-between group ${language === lang.id ? 'text-white bg-[#111]' : 'text-white/50 hover:text-white'}`}
+                    >
+                      {lang.name}
+                      {language === lang.id && (
+                        <motion.div layoutId="activeLang" className="h-1.5 w-1.5 rounded-full bg-[#FFD700] shadow-[0_0_10px_#FFD700]" />
+                      )}
+                    </button>
+                  ))}
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -338,36 +378,33 @@ export default function Home() {
       </header>
 
       <main className="flex flex-1 overflow-hidden">
-        {/* Sidebar Toggle Bar */}
-        <div className="w-16 flex items-end justify-center flex-wrap pt-20 border-r border-[#222] bg-black shrink-0">
-          <button
-            onClick={() => setShowSnippets(!showSnippets)}
-            className={`p-3 rounded-xl transition-all active:scale-90 border-2 ${showSnippets ? 'bg-[#222] border-white text-white shadow-[0_0_25px_rgba(255,255,255,0.15)]' : 'bg-transparent border-transparent text-white/40 hover:text-white hover:bg-[#111]'}`}
-          >
-            <PanelRightClose size={20} />
-          </button>
-        </div>
-
-        {/* Sidebar Content */}
-        <AnimatePresence mode="wait">
-          {showSnippets && (
-            <motion.div
-              initial={{ width: 0, opacity: 0 }}
-              animate={{ width: 340, opacity: 1 }}
-              exit={{ width: 0, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-              className="h-full border-r border-[#222] bg-black overflow-hidden"
+        {/* Unified Sidebar */}
+        <motion.div
+          initial={{ width: 64 }}
+          animate={{ width: showSnippets ? 340 : 64 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="h-full border-r border-[#222] bg-black flex flex-col shrink-0 overflow-hidden relative z-20"
+        >
+          {/* Toggle Header */}
+          <div className={`h-16 flex items-center shrink-0 border-b border-[#222] ${showSnippets ? 'justify-end px-4' : 'justify-center'}`}>
+            <button
+              onClick={() => setShowSnippets(!showSnippets)}
+              className={`p-3 rounded-xl transition-all active:scale-90 border border-transparent hover:bg-[#111] ${showSnippets ? 'text-white' : 'text-white/40'}`}
+              title={showSnippets ? "Collapse Repository" : "Expand Repository"}
             >
-              <div className="w-[340px] h-full">
-                <SnippetsPanel
-                  onLoadSnippet={handleLoadSnippet}
-                  isExpanded={true}
-                  refreshTrigger={snippetsRefresh}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              <PanelRightClose size={20} className={`transition-transform duration-300 ${!showSnippets ? 'rotate-180' : ''}`} />
+            </button>
+          </div>
+
+          {/* Sidebar Content */}
+          <div className={`flex-1 w-[340px] overflow-hidden transition-opacity duration-300 ${showSnippets ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+            <SnippetsPanel
+              onLoadSnippet={handleLoadSnippet}
+              isExpanded={showSnippets}
+              refreshTrigger={snippetsRefresh}
+            />
+          </div>
+        </motion.div>
 
         <PanelGroup orientation={terminalPosition === 'right' ? 'horizontal' : 'vertical'} className="flex-1">
           <Panel defaultSize={70} minSize={20} className="relative">

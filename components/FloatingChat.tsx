@@ -95,7 +95,9 @@ export default function FloatingChat() {
         }
     ]);
     const [isTyping, setIsTyping] = useState(false);
+
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const chatRef = useRef<HTMLDivElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -104,6 +106,25 @@ export default function FloatingChat() {
     useEffect(() => {
         scrollToBottom();
     }, [messages, isTyping]);
+
+    // Handle ESC to close and 'f' to Toggle Maximize/Minimize
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Toggle Maximize/Minimize on 'Ctrl+F'
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f') {
+                e.preventDefault(); // Prevent Browser "Find"
+                setIsExpanded(prev => !prev);
+            }
+        };
+
+        if (isOpen) {
+            window.addEventListener('keydown', handleKeyDown);
+        }
+
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isOpen, onClose]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -120,6 +141,17 @@ export default function FloatingChat() {
         setQuery('');
         setIsTyping(true);
 
+        // Create placeholder AI message
+        const aiMsgId = (Date.now() + 1).toString();
+        const initialAiMsg: Message = {
+            id: aiMsgId,
+            role: 'assistant',
+            content: '', // Start empty
+            timestamp: new Date()
+        };
+
+        setMessages(prev => [...prev, initialAiMsg]);
+
         try {
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -130,102 +162,96 @@ export default function FloatingChat() {
                 })
             });
 
-            const data = await response.json();
+            if (!response.body) throw new Error("No response body");
 
-            const aiMsg: Message = {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: data.reply || "⚠️ **Connection Error**: Neural link unstable.",
-                timestamp: new Date()
-            };
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let aiContent = "";
 
-            setMessages(prev => [...prev, aiMsg]);
-        } catch {
-            setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                role: 'assistant',
-                content: "❌ **Critical Error**: Network unreachable.",
-                timestamp: new Date()
-            }]);
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const text = decoder.decode(value, { stream: true });
+                aiContent += text;
+
+                setMessages(prev => prev.map(msg =>
+                    msg.id === aiMsgId ? { ...msg, content: aiContent } : msg
+                ));
+            }
+
+        } catch (error) {
+            console.error("Stream Error:", error);
+            setMessages(prev => prev.map(msg =>
+                msg.id === aiMsgId ? { ...msg, content: msg.content + "\n\n❌ **Network Error**: Connection lost." } : msg
+            ));
         } finally {
             setIsTyping(false);
         }
     };
 
     // Dynamic Sizing Classes
-    const headerTextClass = isExpanded ? 'text-sm' : 'text-xs';
-    const startPromptSize = isExpanded ? 'text-sm' : 'text-[11px]'; // Slightly smaller than sm
-    const messageTextClass = isExpanded ? 'text-[15px]' : 'text-xs'; // Base legible size vs compact
+    const startPromptSize = isExpanded ? 'text-sm' : 'text-[11px]';
+    const messageTextClass = isExpanded ? 'text-[15px]' : 'text-xs';
 
     return (
         <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end pointer-events-none font-sans">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
+                        ref={chatRef}
                         initial={{ opacity: 0, scale: 0.9, y: 20, filter: 'blur(10px)' }}
                         animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, scale: 0.9, y: 20, filter: 'blur(10px)' }}
                         transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
-                        // Glassmorphism Container
-                        className={`pointer-events-auto mb-6 flex flex-col overflow-hidden origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[800px] h-[700px]' : 'w-[360px] h-[450px]'}`}
+                        // Transparent Container - The "Frame"
+                        className={`pointer-events-auto mb-6 flex flex-col relative overflow-hidden origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[800px] h-[700px]' : 'w-[400px] h-[500px]'}`}
                         style={{
-                            // Deep glass effect
-                            background: 'rgba(12, 12, 14, 0.70)',
-                            backdropFilter: 'blur(20px) saturate(180%)',
-                            WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-                            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37), inset 0 0 0 1px rgba(255, 255, 255, 0.05)',
-                            borderRadius: '24px',
-                            border: '1px solid rgba(255, 255, 255, 0.05)'
+                            // No background - purely a frame for floating elements
                         }}
                     >
-                        {/* Header - Glassy & Dynamic Size */}
-                        <div className={`flex items-center justify-between px-6 py-4 border-b border-white/5 shrink-0 backdrop-blur-3xl bg-white/[0.03] transition-all duration-500`}>
-                            <div className="flex items-center gap-3">
-                                <div className={`p-1.5 bg-yellow-500/10 rounded-md shadow-[0_0_15px_rgba(234,179,8,0.2)] transition-all ${isExpanded ? 'scale-100' : 'scale-90'}`}>
-                                    <CpuChipIcon className={`${isExpanded ? 'w-5 h-5' : 'w-4 h-4'} text-white`} />
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className={`font-bold text-white tracking-wide transition-all ${headerTextClass}`}>Tounge AI</span>
-                                    {isExpanded && (
-                                        <span className="text-[10px] text-emerald-400 font-mono flex items-center gap-1.5">
-                                            <span className="relative flex h-2 w-2">
-                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                                            </span>
-                                            SYSTEM ONLINE
-                                        </span>
-                                    )}
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-2">
+                        {/* Minimal Header - Totally Floating */}
+                        <div className="absolute top-0 right-0 z-30 flex items-center gap-2 p-2" >
+                            <div className="flex items-center gap-1.5 p-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-full shadow-lg transition-opacity hover:opacity-100 opacity-60">
                                 <button
                                     onClick={() => setIsExpanded(!isExpanded)}
-                                    className="p-2 hover:bg-white/10 rounded-full transition-colors text-white/40 hover:text-white"
+                                    className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white/70 hover:text-white"
                                 >
-                                    {isExpanded ? <ArrowsPointingInIcon className="w-4 h-4" /> : <ArrowsPointingOutIcon className="w-4 h-4" />}
+                                    {isExpanded ? <ArrowsPointingInIcon className="w-3.5 h-3.5" /> : <ArrowsPointingOutIcon className="w-3.5 h-3.5" />}
                                 </button>
                                 <button
                                     onClick={() => onClose()}
-                                    className="p-2 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors text-white/40"
+                                    className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors text-white/70"
                                 >
-                                    <XMarkIcon className="w-4 h-4" />
+                                    <XMarkIcon className="w-3.5 h-3.5" />
                                 </button>
                             </div>
                         </div>
 
-                        {/* Messages Area - Glassy content */}
-                        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 custom-scrollbar scroll-smooth">
+
+
+                        {/* Messages Area */}
+                        <div
+                            className="flex-1 overflow-y-auto px-6 pt-12 pb-4 space-y-6 custom-scrollbar scroll-smooth"
+                            style={{
+                                maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 100%)',
+                                WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 100%)'
+                            }}
+                        >
                             {messages.map((msg) => (
                                 <motion.div
-                                    initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
                                     animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    transition={{ duration: 0.3 }}
                                     key={msg.id}
                                     className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                                 >
                                     <div
-                                        className={`max-w-[85%] leading-relaxed shadow-lg backdrop-blur-md transition-all duration-500 ${msg.role === 'user'
-                                            ? 'bg-[#2A2A2A]/40 text-white rounded-2xl rounded-tr-sm px-5 py-3 border border-white/10'
-                                            : 'text-gray-200'
+                                        className={`max-w-[85%] leading-relaxed transition-all duration-500 relative group shadow-2xl
+                                        ${msg.role === 'user'
+                                                // User: Small, Gold Accent, Floating Box
+                                                ? 'bg-[#0a0a0a] text-white rounded-[20px] rounded-tr-sm px-5 py-3 border border-[#FFD700]/20'
+                                                : 'bg-[#0f0f0f] text-gray-200 rounded-[20px] rounded-tl-sm px-6 py-5 border border-white/5' // AI: Dark Box
                                             }`}
                                     >
                                         {msg.role === 'assistant' ? (
@@ -238,33 +264,38 @@ export default function FloatingChat() {
                                                             const { children, className, node, ...rest } = props
                                                             const match = /language-(\w+)/.exec(className || '')
                                                             return match ? (
-                                                                <MinimalCodeBlock
-                                                                    language={match[1]}
-                                                                    isExpanded={isExpanded}
-                                                                    {...rest}
-                                                                >
-                                                                    {children}
-                                                                </MinimalCodeBlock>
+                                                                <div className="my-5 rounded-lg overflow-hidden border border-white/10 shadow-inner bg-black/30">
+                                                                    <MinimalCodeBlock
+                                                                        language={match[1]}
+                                                                        isExpanded={isExpanded}
+                                                                        {...rest}
+                                                                    >
+                                                                        {children}
+                                                                    </MinimalCodeBlock>
+                                                                </div>
                                                             ) : (
                                                                 <code {...rest} className={`px-1.5 py-0.5 rounded-md bg-white/10 text-[#FFD700] font-mono border border-white/5 ${isExpanded ? 'text-xs' : 'text-[10px]'}`}>
                                                                     {children}
                                                                 </code>
                                                             )
                                                         },
-                                                        ul({ children }) { return <ul className="list-disc pl-4 my-2 space-y-1 text-gray-300/90">{children}</ul> },
-                                                        ol({ children }) { return <ol className="list-decimal pl-4 my-2 space-y-1 text-gray-300/90">{children}</ol> },
+                                                        ul({ children }) { return <ul className="list-disc pl-4 my-4 space-y-2 text-gray-300/90">{children}</ul> },
+                                                        ol({ children }) { return <ol className="list-decimal pl-4 my-4 space-y-2 text-gray-300/90">{children}</ol> },
                                                         h3({ children }) {
-                                                            return <h3 className={`${isExpanded ? 'text-base' : 'text-sm'} font-bold text-white mt-5 mb-3 flex items-center gap-2 border-l-2 border-[#FFD700] pl-3`}>{children}</h3>
+                                                            return <h3 className={`${isExpanded ? 'text-lg' : 'text-base'} font-bold text-white mt-8 mb-4 flex items-center gap-2`}>
+                                                                <span className="w-1 h-4 bg-[#FFD700] rounded-full shadow-[0_0_10px_#FFD700]"></span>
+                                                                {children}
+                                                            </h3>
                                                         },
-                                                        p({ children }) { return <p className="mb-2 last:mb-0 leading-relaxed text-gray-200/90">{children}</p> },
-                                                        strong({ children }) { return <strong className="font-bold text-white shadow-[#FFD700]/20 drop-shadow-sm">{children}</strong> }
+                                                        p({ children }) { return <p className="mb-5 last:mb-0 leading-7 text-gray-300 font-light tracking-wide">{children}</p> },
+                                                        strong({ children }) { return <strong className="font-semibold text-white">{children}</strong> }
                                                     }}
                                                 >
                                                     {msg.content}
                                                 </ReactMarkdown>
                                             </div>
                                         ) : (
-                                            <div className={`${isExpanded ? 'text-sm' : 'text-xs'}`}>{msg.content}</div>
+                                            <div className={`${isExpanded ? 'text-sm' : 'text-xs'} font-medium tracking-wide`}>{msg.content}</div>
                                         )}
                                     </div>
                                 </motion.div>
@@ -276,36 +307,40 @@ export default function FloatingChat() {
                                     animate={{ opacity: 1 }}
                                     className="flex items-center gap-3 pl-2"
                                 >
-                                    <div className={`flex gap-1 bg-white/5 border border-white/5 rounded-full items-center backdrop-blur-sm transition-all ${isExpanded ? 'h-8 px-4' : 'h-6 px-3'}`}>
-                                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.3s]"></span>
-                                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce [animation-delay:-0.15s]"></span>
-                                        <span className="w-1.5 h-1.5 bg-white rounded-full animate-bounce"></span>
-                                    </div>
-                                    <span className={`${isExpanded ? 'text-xs' : 'text-[10px]'} text-white/30 font-mono animate-pulse uppercase tracking-wider`}>Calculating...</span>
+                                    <span className={`${isExpanded ? 'text-xs' : 'text-[10px]'} text-[#FFD700] font-mono animate-pulse uppercase tracking-wider flex items-center gap-2`}>
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#FFD700] opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FFD700]"></span>
+                                        </span>
+                                        Thinking...
+                                    </span>
                                 </motion.div>
                             )}
                             <div ref={messagesEndRef} />
                         </div>
 
-                        {/* Input Area - Glassy */}
-                        <form onSubmit={handleSubmit} className="px-6 pb-6 pt-2">
-                            <div className="relative flex items-center">
-                                <input
-                                    type="text"
-                                    value={query}
-                                    onChange={(e) => setQuery(e.target.value)}
-                                    placeholder="Type your command..."
-                                    className={`w-full bg-[#000]/20 border border-white/10 text-white placeholder-white/20 rounded-xl focus:outline-none focus:border-[#FFD700]/30 focus:bg-[#000]/40 transition-all font-medium backdrop-blur-sm shadow-inner ${isExpanded ? 'pl-4 pr-12 py-4 text-sm' : 'pl-3 pr-10 py-3 text-xs'}`}
-                                />
-                                <button
-                                    type="submit"
-                                    disabled={!query.trim() || isTyping}
-                                    className={`absolute right-2 bg-[#FFD700] hover:bg-[#F0C000] text-black rounded-lg transition-all disabled:opacity-0 disabled:scale-75 active:scale-95 shadow-lg shadow-[#FFD700]/20 ${isExpanded ? 'p-2' : 'p-1.5'}`}
-                                >
-                                    <PaperAirplaneIcon className={`${isExpanded ? 'w-4 h-4' : 'w-3 h-3'}`} />
-                                </button>
-                            </div>
-                        </form>
+                        {/* Input Area - Floating Capsule */}
+                        <div className="p-6 pt-2 z-20">
+                            <form onSubmit={handleSubmit} className="relative group">
+                                <div className={`absolute -inset-[1px] bg-gradient-to-r from-transparent via-[#FFD700]/30 to-transparent rounded-[24px] opacity-0 group-focus-within:opacity-100 transition-opacity duration-500 blur-sm`} />
+                                <div className={`relative flex items-center bg-[#151515] border border-white/10 rounded-[22px] shadow-2xl transition-all duration-300 group-focus-within:border-[#FFD700]/40 group-focus-within:bg-[#1a1a1a] ${isExpanded ? 'p-2' : 'p-1.5'}`}>
+                                    <input
+                                        type="text"
+                                        value={query}
+                                        onChange={(e) => setQuery(e.target.value)}
+                                        placeholder="Ask Tounge..."
+                                        className={`w-full bg-transparent text-white placeholder-white/20 focus:outline-none transition-all font-light tracking-wide px-4 ${isExpanded ? 'text-sm' : 'text-xs'}`}
+                                    />
+                                    <button
+                                        type="submit"
+                                        disabled={!query.trim() || isTyping}
+                                        className={`shrink-0 flex items-center justify-center bg-white/10 hover:bg-[#FFD700] hover:text-black hover:shadow-[0_0_20px_rgba(255,215,0,0.4)] text-white/50 rounded-xl transition-all duration-300 disabled:opacity-0 disabled:scale-75 active:scale-95 ${isExpanded ? 'w-10 h-10' : 'w-8 h-8'}`}
+                                    >
+                                        <PaperAirplaneIcon className={`w-4 h-4 -rotate-45 translate-x-0.5 translate-y-[-1px]`} />
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
