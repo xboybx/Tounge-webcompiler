@@ -80,13 +80,12 @@ export default function SnippetsPanel({
 
             <div className="p-6 space-y-4 border-b border-[#111]">
                 <div className="relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20 group-focus-within:text-white/60 transition-colors z-10" size={16} strokeWidth={3} />
                     <input
                         type="text"
                         placeholder="SEARCH ARCHIVE..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="w-full h-12 bg-[#1a1a1a] hover:bg-[#222] border border-[#222] focus:border-white/30 rounded-none pl-12 pr-4 text-xs font-bold tracking-widest text-white/80 placeholder-white/20 focus:bg-[#202020] outline-none transition-all"
+                        className="w-full h-12 bg-[#1a1a1a] hover:bg-[#222] border border-[#222] focus:border-white/30 rounded-none pl-4 pr-4 text-xs font-bold tracking-widest text-white/80 placeholder-white/20 focus:bg-[#202020] outline-none transition-all"
                     />
                 </div>
             </div>

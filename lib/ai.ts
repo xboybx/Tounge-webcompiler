@@ -141,15 +141,44 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
 /**
  * Streamed AI Service with Fallback
  */
-export async function* streamAI(message: string, contextCode?: string, systemPromptOverride?: string): AsyncGenerator<string, void, unknown> {
+export async function* streamAI(input: string | { role: string, content: string }[], contextCode?: string, systemPromptOverride?: string): AsyncGenerator<string, void, unknown> {
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
-    const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
-    const combinedPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
+
+    // Normalize input to history array and last user message
+    let messages: { role: string, content: string }[] = [];
+    let lastUserMessage = "";
+
+    if (typeof input === 'string') {
+        messages = [{ role: 'user', content: input }];
+        lastUserMessage = input;
+    } else {
+        messages = input;
+        const last = messages[messages.length - 1];
+        if (last && last.role === 'user') lastUserMessage = last.content;
+    }
+
+    // Enhance the LAST user message with code context if provided
+    // We only attach context to the latest prompt to save tokens and avoid confusion
+    if (contextCode) {
+        messages = messages.map((m, i) => {
+            if (i === messages.length - 1 && m.role === 'user') {
+                return { ...m, content: `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${m.content}` };
+            }
+            return m;
+        });
+        // Update lastUserMessage for string-based prompts
+        lastUserMessage = messages[messages.length - 1].content;
+    }
 
     // --- 1. Try Gemini (If Configured) ---
     if (gemini) {
         try {
             console.log(`[AI Stream] 💎 Using Gemini...`);
+
+            // For Gemini simple generation, we'll format the history as a script
+            // This is robust for the simple generateContentStream method
+            const historyStr = messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n');
+            const combinedPrompt = `${systemPrompt}\n\nConversation History:\n${historyStr}`;
 
             const result = await gemini.models.generateContentStream({
                 model: "gemini-1.5-flash",
@@ -185,7 +214,8 @@ export async function* streamAI(message: string, contextCode?: string, systemPro
                 model: model,
                 messages: [
                     { role: "system", content: systemPrompt },
-                    { role: "user", content: userPrompt }
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    ...messages as any
                 ],
                 stream: true,
             });

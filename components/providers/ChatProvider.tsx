@@ -26,8 +26,10 @@ export function ChatProvider({ children }: { children: ReactNode }) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []); // Removed isOpen from dependency array as it's not directly used in the effect's logic anymore, and setIsOpen with functional update doesn't need it.
 
+    const [editorCode, setEditorCode] = useState('');
+
     return (
-        <ChatContext.Provider value={{ isOpen, openChat, closeChat, toggleChat }}>
+        <ChatContext.Provider value={{ isOpen, openChat, closeChat, toggleChat, editorCode, setEditorCode }}>
             {children}
             <FloatingChat />
         </ChatContext.Provider>

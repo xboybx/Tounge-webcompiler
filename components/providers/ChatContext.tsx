@@ -7,6 +7,8 @@ export interface ChatContextType {
     openChat: () => void;
     closeChat: () => void;
     toggleChat: () => void;
+    editorCode: string;
+    setEditorCode: (code: string) => void;
 }
 
 export const ChatContext = createContext<ChatContextType | undefined>(undefined);

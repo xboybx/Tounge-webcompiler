@@ -3,7 +3,10 @@ import { streamAI } from '@/lib/ai';
 
 export async function POST(req: Request) {
     try {
-        const { message, contextCode } = await req.json();
+        const { message, messages, contextCode } = await req.json();
+
+        // Use 'messages' (history) if available, otherwise 'message' (legacy/single)
+        const chatInput = messages || message;
 
         // Use a ReadableStream for the response
         const stream = new ReadableStream({
@@ -13,7 +16,13 @@ export async function POST(req: Request) {
                     if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
                         let reply = "⚠️ **Offline Mode**: Please set `GEMINI_API_KEY` or `OPENROUTER_API_KEY` in your `.env` file to use the AI Assistant.";
 
-                        const lowerMsg = message.toLowerCase();
+                        // Extract latest text for offline checks
+                        const lastText = Array.isArray(chatInput)
+                            ? chatInput[chatInput.length - 1]?.content || ""
+                            : chatInput || "";
+
+                        const lowerMsg = lastText.toLowerCase();
+
                         if (lowerMsg.includes('dijkstra')) reply = "**Dijkstra Analysis (Offline)**: O((V+E) log V) Time, O(V+E) Space.";
                         else if (lowerMsg.includes('complexity')) reply = "I can analyze complexity! Connect my brain (API Keys) to see me work.";
 
@@ -26,7 +35,7 @@ export async function POST(req: Request) {
                     }
 
                     // 2. Call Streamed AI Service
-                    const generator = streamAI(message, contextCode);
+                    const generator = streamAI(chatInput, contextCode);
 
                     for await (const chunk of generator) {
                         controller.enqueue(new TextEncoder().encode(chunk));

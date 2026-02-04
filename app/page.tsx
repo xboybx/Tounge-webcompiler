@@ -116,9 +116,14 @@ export default function Home() {
     tags: '',
   });
 
-  const { isOpen: isChatOpen, toggleChat } = useChat();
+  const { isOpen: isChatOpen, toggleChat, setEditorCode } = useChat();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  // Sync code to Chat Context
+  useEffect(() => {
+    setEditorCode(code);
+  }, [code, setEditorCode]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -256,6 +261,23 @@ export default function Home() {
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Save Dialog Shortcuts
+    if (showSaveDialog) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        handleSaveSnippet();
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowSaveDialog(false);
+        return;
+      }
+      // Prevent other shortcuts while dialog is open
+      return;
+    }
+
+    // Global Shortcuts
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       e.preventDefault();
       handleRunCode();
@@ -264,13 +286,16 @@ export default function Home() {
       e.preventDefault();
       handleRunCode();
     }
-    // Toggle sidebar on Escape, or close save dialog if open
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      setShowSaveDialog(true);
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === '`') {
+      e.preventDefault();
+      setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right');
+    }
     if (e.key === 'Escape') {
-      if (showSaveDialog) {
-        setShowSaveDialog(false);
-      } else {
-        setShowSnippets(prev => !prev);
-      }
+      setShowSnippets(prev => !prev);
     }
   };
 
@@ -539,6 +564,8 @@ export default function Home() {
           <span className="uppercase tracking-widest text-[#666] text-[10px] -2">AI : Ctrl + Q</span>
           <span className="uppercase tracking-widest text-[#666] text-[10px]">Chat Min/Max : Ctrl + F</span>
           <span className="uppercase tracking-widest text-[#666] text-[10px] flex items-center justify-center gap-2"><PanelRightClose size={18} /> : ESC</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px]">Save: Ctrl + S</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px]">Layout: Ctrl + `</span>
           <span className="uppercase tracking-widest text-[#666] text-[10px]">Run: Ctrl + F8</span>
         </div>
 
@@ -547,9 +574,9 @@ export default function Home() {
 
           <button
             onClick={toggleChat}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#FFD700] text-[#FFD700] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#06B6D4] text-[#06B6D4] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
           >
-            <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#FFD700]" : ""} />
+            <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#06B6D4]" : ""} />
             <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4 "
               style={{ marginRight: "10px" }}>Ask TOUNGE</span>
           </button>
