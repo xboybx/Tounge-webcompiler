@@ -1,6 +1,7 @@
 import { Terminal, AlertCircle, Sparkles, Columns, Rows, ClockCheck, CheckCircle2, Timer, Lightbulb, Trash, ChevronDown, ChevronUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useCallback } from 'react';
+import Tooltip from '@/components/ui/Tooltip';
 
 interface OutputPanelProps {
     output: string;
@@ -126,45 +127,48 @@ export default function OutputPanel({
 
                     <div className="w-px h-4 bg-[#1a1a1a]" />
 
-                    <button
-                        onClick={onTogglePosition}
-                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 text-white/20 hover:text-white transition-all group active:scale-95"
-                        title={terminalPosition === 'right' ? "Move to Bottom" : "Move to Side"}
-                    >
-                        {terminalPosition === 'right' ? (
-                            <Rows size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
-                        ) : (
-                            <Columns size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
-                        )}
-                    </button>
+                    <Tooltip content={terminalPosition === 'right' ? "Move to Bottom" : "Move to Side"} position="bottom">
+                        <button
+                            onClick={onTogglePosition}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/5 text-white/20 hover:text-white transition-all group active:scale-95"
+                        >
+                            {terminalPosition === 'right' ? (
+                                <Rows size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
+                            ) : (
+                                <Columns size={14} strokeWidth={3} className="group-hover:rotate-180 transition-transform duration-500" />
+                            )}
+                        </button>
+                    </Tooltip>
                 </div>
 
                 <div className="flex items-center gap-4">
                     {/* AI Trigger Button */}
-                    <button
-                        onClick={toggleAiMode}
-                        className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${aiMode
-                            ? (isAnalyzing ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20')
-                            : 'text-white/20 hover:text-white border border-transparent'
-                            }`}
-                        title={aiMode ? "AI Analysis Enabled" : "Enable AI Logic"}
-                    >
-                        {aiMode ? (
-                            <ClockCheck size={18} strokeWidth={3} />
-                        ) : (
-                            <Timer size={18} strokeWidth={3} />
-                        )}
-                    </button>
+                    <Tooltip content={aiMode ? "Space Complexity" : "Time Complexity"} position="bottom">
+                        <button
+                            onClick={toggleAiMode}
+                            className={`flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all ${aiMode
+                                ? (isAnalyzing ? 'bg-purple-500/20 text-purple-300' : 'bg-purple-500/10 text-purple-400 border border-purple-500/20')
+                                : 'text-white/20 hover:text-white border border-transparent'
+                                }`}
+                        >
+                            {aiMode ? (
+                                <ClockCheck size={18} strokeWidth={3} />
+                            ) : (
+                                <Timer size={18} strokeWidth={3} />
+                            )}
+                        </button>
+                    </Tooltip>
 
                     {/* Clear Button */}
                     {onClear && (
-                        <button
-                            onClick={onClear}
-                            className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-white/30 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95"
-                            title="Clear Output"
-                        >
-                            <Trash size={18} strokeWidth={3} />
-                        </button>
+                        <Tooltip content="Clear Output" position="bottom">
+                            <button
+                                onClick={onClear}
+                                className="flex items-center gap-2 px-2 py-1.5 rounded-lg transition-all text-white/30 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 active:scale-95"
+                            >
+                                <Trash size={18} strokeWidth={3} />
+                            </button>
+                        </Tooltip>
                     )}
                 </div>
             </div>

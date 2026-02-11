@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { X, Search } from 'lucide-react';
 import { motion } from 'framer-motion';
+import Tooltip from '@/components/ui/Tooltip';
 
 interface Snippet {
     _id: string;
@@ -110,16 +111,17 @@ export default function SnippetsPanel({
                             className="group relative p-6 rounded-none border border-[#111] bg-[#050505] hover:border-white/20 hover:bg-[#111] transition-all cursor-pointer active:scale-[0.98]"
                             onClick={() => onLoadSnippet(snippet.code, snippet.language)}
                         >
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteSnippet(snippet._id);
-                                }}
-                                className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[#222] text-[#444] hover:text-[#ee0000] opacity-0 group-hover:opacity-100 transition-all z-10"
-                                title="Delete Snippet"
-                            >
-                                <X size={14} strokeWidth={3} />
-                            </button>
+                            <Tooltip content="Delete Snippet" position="left">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteSnippet(snippet._id);
+                                    }}
+                                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[#222] text-[#444] hover:text-[#ee0000] opacity-0 group-hover:opacity-100 transition-all z-10"
+                                >
+                                    <X size={14} strokeWidth={3} />
+                                </button>
+                            </Tooltip>
 
                             <div className="flex flex-col gap-1 pr-6">
                                 <h3 className="text-sm font-bold text-white truncate uppercase tracking-tight">{snippet.title}</h3>

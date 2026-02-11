@@ -15,6 +15,7 @@ import {
   X,
   Sparkles,
 } from 'lucide-react';
+import Tooltip from '@/components/ui/Tooltip';
 import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import SnippetsPanel from '@/components/SnippetsPanel';
@@ -373,39 +374,43 @@ export default function Home() {
               <span>{isRunning ? 'RUNNING' : 'EXECUTE'}</span>
             </button>
 
-            <button
-              onClick={() => setShowSaveDialog(true)}
-              className="p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
-              title="Save to Repository"
-            >
-              <Save size={20} strokeWidth={3} />
-            </button>
+            <Tooltip content="Save" position="bottom">
+              <button
+                onClick={() => setShowSaveDialog(true)}
+                className="p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
+              >
+                <Save size={20} strokeWidth={3} />
+              </button>
+            </Tooltip>
           </div>
 
           <div className="w-px h-5 bg-[#222] hidden sm:block" />
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={handleUpload}
-              className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
-              title="Upload"
-            >
-              <Upload size={20} strokeWidth={3} />
-            </button>
-            <button
-              onClick={handleDownload}
-              className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
-              title="Download"
-            >
-              <Download size={20} strokeWidth={3} />
-            </button>
-            <button
-              onClick={() => setTheme(theme === 'vs-dark' ? 'noir' : 'vs-dark')}
-              className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
-              title="Theme"
-            >
-              {theme === 'vs-dark' ? <Sun size={20} strokeWidth={3} /> : <Moon size={20} strokeWidth={3} />}
-            </button>
+            <Tooltip content="Upload" position="bottom">
+              <button
+                onClick={handleUpload}
+                className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+              >
+                <Upload size={20} strokeWidth={3} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Download" position="bottom">
+              <button
+                onClick={handleDownload}
+                className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+              >
+                <Download size={20} strokeWidth={3} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Theme" position="bottom">
+              <button
+                onClick={() => setTheme(theme === 'vs-dark' ? 'noir' : 'vs-dark')}
+                className="p-2.5 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+              >
+                {theme === 'vs-dark' ? <Sun size={20} strokeWidth={3} /> : <Moon size={20} strokeWidth={3} />}
+              </button>
+            </Tooltip>
           </div>
         </div>
       </header>
@@ -416,17 +421,18 @@ export default function Home() {
           initial={{ width: 64 }}
           animate={{ width: showSnippets ? 340 : 64 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="h-full border-r border-[#222] bg-black flex flex-col shrink-0 overflow-hidden relative z-20"
+          className="h-full border-r border-[#222] bg-black flex flex-col shrink-0 relative z-50"
         >
           {/* Toggle Header */}
           <div className={`h-16 flex items-center shrink-0 border-b border-[#222] ${showSnippets ? 'justify-end px-4' : 'justify-center'}`}>
-            <button
-              onClick={() => setShowSnippets(!showSnippets)}
-              className={`p-3 rounded-xl transition-all active:scale-90 border border-transparent hover:bg-[#111] ${showSnippets ? 'text-white' : 'text-white/40'}`}
-              title={showSnippets ? "Collapse Repository" : "Expand Repository"}
-            >
-              <PanelRightClose size={20} className={`transition-transform duration-300 ${!showSnippets ? 'rotate-180' : ''}`} />
-            </button>
+            <Tooltip content={showSnippets ? "Collapse" : "Expand"} position="right">
+              <button
+                onClick={() => setShowSnippets(!showSnippets)}
+                className={`p-3 rounded-xl transition-all active:scale-90 border border-transparent hover:bg-[#111] ${showSnippets ? 'text-white' : 'text-white/40'}`}
+              >
+                <PanelRightClose size={20} className={`transition-transform duration-300 ${!showSnippets ? 'rotate-180' : ''}`} />
+              </button>
+            </Tooltip>
           </div>
 
           {/* Sidebar Content */}

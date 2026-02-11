@@ -5,6 +5,7 @@ import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { Play, Square, RotateCcw, Trash2, Copy } from 'lucide-react';
+import Tooltip from '@/components/ui/Tooltip';
 
 export default function Terminal() {
     const terminalRef = useRef<HTMLDivElement>(null);
@@ -218,27 +219,30 @@ export default function Terminal() {
                         Stop
                     </button>
                     <div className="mx-2 h-5 w-px bg-zinc-700"></div>
-                    <button
-                        onClick={handleCopy}
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-                        title="Copy selection"
-                    >
-                        <Copy className="h-4 w-4" />
-                    </button>
-                    <button
-                        onClick={handleClear}
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-500/20 hover:text-red-500"
-                        title="Clear terminal"
-                    >
-                        <Trash2 className="h-4 w-4" />
-                    </button>
-                    <button
-                        onClick={handleReset}
-                        className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
-                        title="Reset terminal"
-                    >
-                        <RotateCcw className="h-4 w-4" />
-                    </button>
+                    <Tooltip content="Copy selection" position="top">
+                        <button
+                            onClick={handleCopy}
+                            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                        >
+                            <Copy className="h-4 w-4" />
+                        </button>
+                    </Tooltip>
+                    <Tooltip content="Clear terminal" position="top">
+                        <button
+                            onClick={handleClear}
+                            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-red-500/20 hover:text-red-500"
+                        >
+                            <Trash2 className="h-4 w-4" />
+                        </button>
+                    </Tooltip>
+                    <Tooltip content="Reset terminal" position="top">
+                        <button
+                            onClick={handleReset}
+                            className="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-200"
+                        >
+                            <RotateCcw className="h-4 w-4" />
+                        </button>
+                    </Tooltip>
                 </div>
             </div>
 

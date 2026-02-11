@@ -14,6 +14,7 @@ import {
     StopIcon,
     TrashIcon
 } from '@heroicons/react/24/solid';
+import Tooltip from '@/components/ui/Tooltip';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
@@ -47,22 +48,24 @@ const MinimalCodeBlock = ({ language, children, isExpanded, ...props }: any) => 
                     {language || 'Terminal'}
                 </span>
 
-                <button
-                    onClick={handleCopy}
-                    className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-white/10 transition-colors group/btn"
-                >
-                    {copied ? (
-                        <>
-                            <CheckIcon className={`text-emerald-400 ${isExpanded ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
-                            <span className={`text-emerald-400 font-medium ${isExpanded ? 'text-[10px]' : 'text-[8px]'}`}>Copied</span>
-                        </>
-                    ) : (
-                        <>
-                            <ClipboardDocumentIcon className={`text-white/30 group-hover/btn:text-white/70 transition-colors ${isExpanded ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
-                            <span className={`text-white/30 group-hover/btn:text-white/70 transition-colors ${isExpanded ? 'text-[10px]' : 'text-[8px]'}`}>Copy</span>
-                        </>
-                    )}
-                </button>
+                <Tooltip content={copied ? "Copied!" : "Copy Code"} position="left">
+                    <button
+                        onClick={handleCopy}
+                        className="flex items-center gap-1.5 px-2 py-0.5 rounded hover:bg-white/10 transition-colors group/btn"
+                    >
+                        {copied ? (
+                            <>
+                                <CheckIcon className={`text-emerald-400 ${isExpanded ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
+                                <span className={`text-emerald-400 font-medium ${isExpanded ? 'text-[10px]' : 'text-[8px]'}`}>Copied</span>
+                            </>
+                        ) : (
+                            <>
+                                <ClipboardDocumentIcon className={`text-white/30 group-hover/btn:text-white/70 transition-colors ${isExpanded ? 'w-3 h-3' : 'w-2.5 h-2.5'}`} />
+                                <span className={`text-white/30 group-hover/btn:text-white/70 transition-colors ${isExpanded ? 'text-[10px]' : 'text-[8px]'}`}>Copy</span>
+                            </>
+                        )}
+                    </button>
+                </Tooltip>
             </div>
 
             {/* Syntax Highlighter */}
@@ -277,25 +280,30 @@ export default function FloatingChat() {
                         {/* Minimal Header - Totally Floating */}
                         <div className="absolute top-0 right-0 z-30 flex items-center gap-2 p-4" >
                             <div className="flex items-center gap-1.5 p-1 bg-black/40 backdrop-blur-md border border-white/10 rounded-full shadow-lg transition-opacity hover:opacity-100 opacity-60">
-                                <button
-                                    onClick={clearHistory}
-                                    className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white/70 hover:text-white"
-                                    title="Clear Chat History"
-                                >
-                                    <TrashIcon className="w-3.5 h-3.5" />
-                                </button>
-                                <button
-                                    onClick={() => setIsExpanded(!isExpanded)}
-                                    className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white/70 hover:text-white"
-                                >
-                                    {isExpanded ? <ArrowsPointingInIcon className="w-3.5 h-3.5" /> : <ArrowsPointingOutIcon className="w-3.5 h-3.5" />}
-                                </button>
-                                <button
-                                    onClick={() => onClose()}
-                                    className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors text-white/70"
-                                >
-                                    <XMarkIcon className="w-3.5 h-3.5" />
-                                </button>
+                                <Tooltip content="Clear Chat History" position="bottom">
+                                    <button
+                                        onClick={clearHistory}
+                                        className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white/70 hover:text-white"
+                                    >
+                                        <TrashIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content={isExpanded ? "Minimize Chat" : "Maximize Chat"} position="bottom">
+                                    <button
+                                        onClick={() => setIsExpanded(!isExpanded)}
+                                        className="p-1.5 hover:bg-white/20 rounded-full transition-colors text-white/70 hover:text-white"
+                                    >
+                                        {isExpanded ? <ArrowsPointingInIcon className="w-3.5 h-3.5" /> : <ArrowsPointingOutIcon className="w-3.5 h-3.5" />}
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content="Close Chat" position="bottom">
+                                    <button
+                                        onClick={() => onClose()}
+                                        className="p-1.5 hover:bg-red-500/20 hover:text-red-400 rounded-full transition-colors text-white/70"
+                                    >
+                                        <XMarkIcon className="w-3.5 h-3.5" />
+                                    </button>
+                                </Tooltip>
                             </div>
                         </div>
 
@@ -424,26 +432,30 @@ export default function FloatingChat() {
                                         className={`w-full bg-transparent text-white placeholder-white/20 focus:outline-none transition-all font-light tracking-wide px-4 ${isExpanded ? 'text-sm' : 'text-xs'}`}
                                         style={{ padding: '0.5rem' }}
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsCodeAttached(!isCodeAttached)}
-                                        className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-300 mr-2 ${isCodeAttached ? 'bg-[#06B6D4]/20 text-[#06B6D4]' : 'hover:bg-white/5 text-white/40 hover:text-white'}`}
-                                    >
-                                        {isCodeAttached ? <CheckIcon className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />}
-                                        <span className={`text-[10px] font-bold uppercase tracking-wider ${isCodeAttached ? 'text-[#06B6D4]' : ''}`}>Code</span>
-                                    </button>
-                                    <button
-                                        type={isTyping ? "button" : "submit"}
-                                        onClick={isTyping ? handleStop : undefined}
-                                        disabled={!isTyping && !query.trim()}
-                                        className={`shrink-0 flex items-center justify-center bg-white/10 hover:bg-[#06B6D4] hover:text-black hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white/50 rounded-xl transition-all duration-300 disabled:opacity-0 disabled:scale-75 active:scale-95 ${isExpanded ? 'w-10 h-10' : 'w-8 h-8'}`}
-                                    >
-                                        {isTyping ? (
-                                            <StopIcon className="w-4 h-4" />
-                                        ) : (
-                                            <PaperAirplaneIcon className={`w-4 h-4 -rotate-45 translate-x-0.5 translate-y-[-1px]`} />
-                                        )}
-                                    </button>
+                                    <Tooltip content={isCodeAttached ? "Detach Code Context" : "Attach Code Context"} position="top">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsCodeAttached(!isCodeAttached)}
+                                            className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all duration-300 mr-2 ${isCodeAttached ? 'bg-[#06B6D4]/20 text-[#06B6D4]' : 'hover:bg-white/5 text-white/40 hover:text-white'}`}
+                                        >
+                                            {isCodeAttached ? <CheckIcon className="w-3.5 h-3.5" /> : <PlusIcon className="w-3.5 h-3.5" />}
+                                            <span className={`text-[10px] font-bold uppercase tracking-wider ${isCodeAttached ? 'text-[#06B6D4]' : ''}`}>Code</span>
+                                        </button>
+                                    </Tooltip>
+                                    <Tooltip content={isTyping ? "Stop Generating" : "Send Message"} position="top">
+                                        <button
+                                            type={isTyping ? "button" : "submit"}
+                                            onClick={isTyping ? handleStop : undefined}
+                                            disabled={!isTyping && !query.trim()}
+                                            className={`shrink-0 flex items-center justify-center bg-white/10 hover:bg-[#06B6D4] hover:text-black hover:shadow-[0_0_20px_rgba(6,182,212,0.4)] text-white/50 rounded-xl transition-all duration-300 disabled:opacity-0 disabled:scale-75 active:scale-95 ${isExpanded ? 'w-10 h-10' : 'w-8 h-8'}`}
+                                        >
+                                            {isTyping ? (
+                                                <StopIcon className="w-4 h-4" />
+                                            ) : (
+                                                <PaperAirplaneIcon className={`w-4 h-4 -rotate-45 translate-x-0.5 translate-y-[-1px]`} />
+                                            )}
+                                        </button>
+                                    </Tooltip>
                                 </div>
                             </form>
                         </div>
