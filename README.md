@@ -1,6 +1,4 @@
-# Code Craft Compiler
--fix ai models
--fix ui bugs
+# Tounge Compiler
 
 A powerful, modern **code compiler** and execution engine for multiple programming languages, built with Next.js and TypeScript.
 
@@ -75,7 +73,7 @@ Install the required compilers/interpreters for the languages you want to use:
 
 1. **Navigate to the project**
    ```bash
-   cd code-craft
+   cd tounge-compiler
    ```
 
 2. **Install dependencies**
@@ -87,7 +85,7 @@ Install the required compilers/interpreters for the languages you want to use:
    
    The `.env.local` file has been created. For MongoDB Atlas:
    ```env
-   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/code-craft
+   MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/tounge-compiler
    ```
 
 4. **Start MongoDB** (if using local MongoDB)
@@ -160,7 +158,7 @@ console.log('Document object:', typeof document);
 - **Styling:** Tailwind CSS 4
 - **Code Editor:** Monaco Editor
 - **Database:** MongoDB with Mongoose
-- **Code Execution:** Node.js child_process
+- **Code Execution:** Wandbox API (free, no limits)
 - **Animations:** Framer Motion
 - **Icons:** Lucide React
 - **File Processing:** UUID for unique file IDs
@@ -168,11 +166,11 @@ console.log('Document object:', typeof document);
 ## 📁 Project Structure
 
 ```
-code-craft/
+tounge-compiler/
 ├── app/
 │   ├── api/
 │   │   ├── execute/
-│   │   │   └── route.ts          # Code execution API
+│   │   │   └── route.ts          # Code execution API (Wandbox)
 │   │   └── snippets/
 │   │       ├── route.ts          # Snippets CRUD
 │   │       └── [id]/route.ts     # Individual snippet
@@ -281,6 +279,6 @@ MIT License - Open source and free to use.
 
 ---
 
-**Made with ❤️ - A Modern Code Compiler for Developers**
+**Made with ❤️ by Tounge — A Modern Code Compiler for Developers**
 
 🚀 **Compile. Execute. Create.**
