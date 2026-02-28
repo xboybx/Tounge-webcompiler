@@ -24,7 +24,8 @@ const openRouter = new OpenAI({
  */
 const FREE_MODELS = [
 
-    "upstage/solar-pro-3:free",
+    "stepfun/step-3.5-flash:free",
+    "arcee-ai/trinity-large-preview:free",
     "liquid/lfm-2.5-1.2b-thinking:free",
     "allenai/molmo-2-8b:free",
     "qwen/qwen3-coder:free",
