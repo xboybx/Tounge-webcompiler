@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { X, Search } from 'lucide-react';
+import { X, Search, Pencil } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Tooltip from '@/components/ui/Tooltip';
 
@@ -17,12 +17,16 @@ interface Snippet {
 
 interface SnippetsPanelProps {
     onLoadSnippet: (code: string, language: string) => void;
+    onEditSnippet: (snippet: Snippet) => void;
+    activeSnippetId?: string | null;
     isExpanded: boolean;
     refreshTrigger?: number;
 }
 
 export default function SnippetsPanel({
     onLoadSnippet,
+    onEditSnippet,
+    activeSnippetId,
     isExpanded,
     refreshTrigger
 }: SnippetsPanelProps) {
@@ -56,7 +60,7 @@ export default function SnippetsPanel({
     }, [searchQuery, isExpanded, refreshTrigger, fetchSnippets]);
 
     const handleDeleteSnippet = async (id: string) => {
-        if (!confirm('Eliminate this snippet?')) return;
+        if (!confirm('Delete this snippet?')) return;
 
         try {
             const response = await fetch(`/api/snippets/${id}`, {
@@ -108,20 +112,33 @@ export default function SnippetsPanel({
                             layout
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
-                            className="group relative p-6 rounded-none border border-[#111] bg-[#050505] hover:border-white/20 hover:bg-[#111] transition-all cursor-pointer active:scale-[0.98]"
+                            className={`group relative p-6 rounded-none border ${activeSnippetId === snippet._id ? 'border-[#00a3ff] bg-black' : 'border-[#111] bg-[#050505]'} hover:border-white/20 hover:bg-[#111] transition-all cursor-pointer active:scale-[0.98]`}
                             onClick={() => onLoadSnippet(snippet.code, snippet.language)}
                         >
-                            <Tooltip content="Delete Snippet" position="left">
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteSnippet(snippet._id);
-                                    }}
-                                    className="absolute top-4 right-4 p-2 rounded-lg hover:bg-[#222] text-[#444] hover:text-[#ee0000] opacity-0 group-hover:opacity-100 transition-all z-10"
-                                >
-                                    <X size={14} strokeWidth={3} />
-                                </button>
-                            </Tooltip>
+                            <div className={`absolute top-4 right-4 flex gap-2 ${activeSnippetId === snippet._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-all z-10`}>
+                                <Tooltip content="Edit Snippet" position="left">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            onEditSnippet(snippet);
+                                        }}
+                                        className={`p-2 rounded-lg hover:bg-[#222] ${activeSnippetId === snippet._id ? 'text-[#00a3ff]' : 'text-[#444]'} hover:text-[#00a3ff] transition-all`}
+                                    >
+                                        <Pencil size={14} strokeWidth={3} />
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content="Delete Snippet" position="left">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteSnippet(snippet._id);
+                                        }}
+                                        className="p-2 rounded-lg hover:bg-[#222] text-[#444] hover:text-[#ee0000] transition-all"
+                                    >
+                                        <X size={14} strokeWidth={3} />
+                                    </button>
+                                </Tooltip>
+                            </div>
 
                             <div className="flex flex-col gap-1 pr-6">
                                 <h3 className="text-sm font-bold text-white truncate uppercase tracking-tight">{snippet.title}</h3>

@@ -111,6 +111,7 @@ export default function Home() {
 
   const [complexity, setComplexity] = useState<{ time: string; space: string } | null>(null);
 
+  const [editingSnippetId, setEditingSnippetId] = useState<string | null>(null);
   const [newSnippet, setNewSnippet] = useState({
     title: '',
     description: '',
@@ -188,8 +189,14 @@ export default function Home() {
     }
 
     try {
-      const response = await fetch('/api/snippets', {
-        method: 'POST',
+      const url = editingSnippetId
+        ? `/api/snippets/${editingSnippetId}`
+        : '/api/snippets';
+
+      const method = editingSnippetId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newSnippet.title,
@@ -205,6 +212,7 @@ export default function Home() {
       if (data.success) {
         setShowSaveDialog(false);
         setNewSnippet({ title: '', description: '', tags: '' });
+        setEditingSnippetId(null);
         setSnippetsRefresh(prev => prev + 1);
       }
     } catch (error) {
@@ -212,9 +220,25 @@ export default function Home() {
     }
   };
 
+  const handleEditSnippet = (snippet: any) => {
+    setCode(snippet.code);
+    setLanguage(snippet.language);
+    setNewSnippet({
+      title: snippet.title,
+      description: snippet.description || '',
+      tags: snippet.tags?.join(', ') || '',
+    });
+    setEditingSnippetId(snippet._id);
+    setOutput('');
+    setError(null);
+    setExecutionTime(null);
+  };
+
   const handleLoadSnippet = (snippetCode: string, snippetLanguage: string) => {
     setCode(snippetCode);
     setLanguage(snippetLanguage);
+    setEditingSnippetId(null);
+    setNewSnippet({ title: '', description: '', tags: '' });
     setOutput('');
     setError(null);
     setExecutionTime(null);
@@ -272,6 +296,8 @@ export default function Home() {
       if (e.key === 'Escape') {
         e.preventDefault();
         setShowSaveDialog(false);
+        setEditingSnippetId(null);
+        setNewSnippet({ title: '', description: '', tags: '' });
         return;
       }
       // Prevent other shortcuts while dialog is open
@@ -439,6 +465,8 @@ export default function Home() {
           <div className={`flex-1 w-[340px] overflow-hidden transition-opacity duration-300 ${showSnippets ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
             <SnippetsPanel
               onLoadSnippet={handleLoadSnippet}
+              onEditSnippet={handleEditSnippet}
+              activeSnippetId={editingSnippetId}
               isExpanded={showSnippets}
               refreshTrigger={snippetsRefresh}
             />
@@ -491,7 +519,11 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowSaveDialog(false)}
+            onClick={() => {
+              setShowSaveDialog(false);
+              setEditingSnippetId(null);
+              setNewSnippet({ title: '', description: '', tags: '' });
+            }}
             className="fixed inset-0 z-50 flex items-center justify-center  backdrop-blur-xs p-24"
           >
             <motion.div
@@ -503,8 +535,8 @@ export default function Home() {
             >
               <div className="space-y-32">
                 <div className="space-y-6">
-                  <h3 className="text-[12px] font-black uppercase tracking-[1em] text-white/10">Archive Protocol</h3>
-                  <h2 className="text-6xl font-black tracking-tighter text-white">Commit Logic</h2>
+                  <h3 className="text-[12px] font-black uppercase tracking-[1em] text-white/10">{editingSnippetId ? 'Update Protocol' : 'Archive Protocol'}</h3>
+                  <h2 className="text-6xl font-black tracking-tighter text-white">{editingSnippetId ? 'Update Logic' : 'Commit Logic'}</h2>
                 </div>
 
                 <div className="space-y-24">
@@ -535,7 +567,11 @@ export default function Home() {
 
                   <div className="flex items-center gap-8 pt-24">
                     <button
-                      onClick={() => setShowSaveDialog(false)}
+                      onClick={() => {
+                        setShowSaveDialog(false);
+                        setEditingSnippetId(null);
+                        setNewSnippet({ title: '', description: '', tags: '' });
+                      }}
                       className="flex-1 flex items-center justify-center gap-4 py-8 rounded-2xl border border-white/5 bg-white/2 text-white/40 text-[11px] font-black uppercase tracking-[0.5em] hover:bg-white/5 hover:text-white transition-all active:scale-95"
                     >
                       <X size={24} strokeWidth={3} />
@@ -546,13 +582,12 @@ export default function Home() {
                       className="flex-2 flex items-center justify-center gap-5 py-8 bg-white text-[#00a3ff] text-sm font-black uppercase tracking-[0.5em] rounded-2xl hover:bg-neutral-100 transition-all active:scale-95 shadow-[0_30px_100px_rgba(0,163,255,0.2)]"
                     >
                       <Save size={24} strokeWidth={3} />
-                      <span>Archive Logic</span>
+                      <span>{editingSnippetId ? 'Update Logic' : 'Archive Logic'}</span>
                     </button>
                   </div>
                 </div>
               </div>
             </motion.div>
-
           </motion.div>
         )}
       </AnimatePresence>
@@ -590,6 +625,6 @@ export default function Home() {
           {/* <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">TOUNGE</span> */}
         </div>
       </footer>
-    </div>
+    </div >
   );
 }
