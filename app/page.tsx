@@ -17,6 +17,7 @@ import {
   Code,
   Terminal as TerminalIcon,
   BookOpen,
+  MoreVertical,
 } from 'lucide-react';
 import Tooltip from '@/components/ui/Tooltip';
 import dynamic from 'next/dynamic';
@@ -131,7 +132,9 @@ export default function Home() {
 
   const { isOpen: isChatOpen, toggleChat, setEditorCode } = useChat();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const languageMenuRef = useRef<HTMLDivElement>(null);
+  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   // Detect mobile and force terminal to bottom
   useEffect(() => {
@@ -156,6 +159,9 @@ export default function Home() {
     const handleClickOutside = (event: MouseEvent) => {
       if (languageMenuRef.current && !languageMenuRef.current.contains(event.target as Node)) {
         setIsLanguageMenuOpen(false);
+      }
+      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
+        setIsMobileMenuOpen(false);
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -361,9 +367,12 @@ export default function Home() {
       <header className="flex h-14 items-center justify-between border-b border-[#222] bg-black px-3 sm:px-5 shrink-0 relative z-30">
         <div className="flex items-center gap-3 sm:gap-8">
           <div className="flex items-center gap-2 sm:gap-4 text-white uppercase tracking-tighter">
-            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 border-white/10 p-1.5 font-bold">
+            <button
+              onClick={() => isMobile && toggleMobileOverlay('library')}
+              className={`flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 border-white/10 p-1.5 font-bold transition-all active:scale-95 ${isMobile && mobileOverlay === 'library' ? 'bg-white/10 ring-1 ring-white/20' : ''}`}
+            >
               <img src="/icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
-            </div>
+            </button>
             <span className="text-lg sm:text-xl font-black hidden sm:block">Tounge</span>
           </div>
 
@@ -417,25 +426,110 @@ export default function Home() {
 
         <div className="flex items-center gap-2 sm:gap-6">
           <div className="flex items-center gap-2 sm:gap-4">
+            {/* Desktop Run Button */}
             <button
               onClick={handleRunCode}
               disabled={isRunning}
               style={{ backgroundColor: '#ffffff', color: '#000000' }}
-              className="flex items-center justify-center gap-1.5 sm:gap-2 h-8 px-3 sm:px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50 min-w-[60px]"
+              className="hidden sm:flex items-center justify-center gap-1.5 sm:gap-2 h-8 px-3 sm:px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50 min-w-[60px]"
             >
               {isRunning ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-black border-t-transparent" />
               ) : (
                 <Play size={12} fill="#000000" strokeWidth={3} color="#000000" />
               )}
-              <span className="sm:hidden">{isRunning ? 'RUN' : 'RUN'}</span>
               <span className="hidden sm:inline">{isRunning ? 'RUNNING' : 'EXECUTE'}</span>
             </button>
+
+            {/* Mobile Nav Actions */}
+            <div className="flex sm:hidden items-center gap-3">
+              {/* Play Line Icon for Run */}
+              <button
+                onClick={handleRunCode}
+                disabled={isRunning}
+                className={`p-2 rounded-lg transition-all active:scale-90 ${isRunning ? 'text-white/20' : 'text-white hover:bg-white/10'}`}
+              >
+                {isRunning ? (
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+                ) : (
+                  <Play size={20} strokeWidth={2.5} />
+                )}
+              </button>
+
+              {/* Output Tab Icon */}
+              <button
+                onClick={() => toggleMobileOverlay('output')}
+                className={`p-2 rounded-lg transition-all active:scale-90 relative ${mobileOverlay === 'output' ? 'text-white bg-white/10' : 'text-white/40 hover:text-white'}`}
+              >
+                <TerminalIcon size={20} strokeWidth={2.5} />
+                {(output || error) && mobileOverlay !== 'output' && (
+                  <div className="absolute top-2 right-2 h-1.5 w-1.5 rounded-full bg-[#00a3ff]" />
+                )}
+              </button>
+
+              {/* More Vertical (Three Dots) */}
+              <div ref={mobileMenuRef} className="relative">
+                <button
+                  onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                  className={`p-2 rounded-lg transition-all active:scale-90 ${isMobileMenuOpen ? 'text-white bg-white/10' : 'text-white/40 hover:text-white'}`}
+                >
+                  <MoreVertical size={20} strokeWidth={2.5} />
+                </button>
+
+                <AnimatePresence>
+                  {isMobileMenuOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 12, scale: 0.98 }}
+                      className="absolute top-full right-0 mt-4  h-28 flex flex-col  justify-between bg-[#0A0A0A] border border-white/10 rounded-md shadow-[0_32px_64px_-16px_rgba(0,0,0,0.8)] py-2.5 overflow-hidden z-50 backdrop-blur-xl"
+                    >
+                      <button
+                        onClick={() => {
+                          setShowSaveDialog(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-4 px-6 py-4.5 text-xs font-bold uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                      >
+                        <Save size={18} strokeWidth={2.5} />
+                        Save Logic
+                      </button>
+
+                      <div className="mx-4 h-px bg-white/5" />
+
+                      <button
+                        onClick={() => {
+                          setTheme(theme === 'vs-dark' ? 'noir' : 'vs-dark');
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full flex items-center gap-4 px-6 py-4.5 text-xs font-bold uppercase tracking-widest text-white/70 hover:text-white hover:bg-white/5 transition-all"
+                      >
+                        {theme === 'vs-dark' ? <Sun size={18} strokeWidth={2.5} /> : <Moon size={18} strokeWidth={2.5} />}
+                        Appearance
+                      </button>
+
+                      <div className="mx-4 h-px bg-white/5" />
+
+                      <button
+                        onClick={() => {
+                          toggleChat();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-4 px-6 py-4.5 text-xs font-bold uppercase tracking-widest transition-all ${isChatOpen ? 'text-[#06B6D4] bg-[#06B6D4]/5' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                      >
+                        <Sparkles size={18} strokeWidth={2.5} className={isChatOpen ? 'fill-[#06B6D4]' : ''} />
+                        Ask AI
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
 
             <Tooltip content="Save" position="bottom">
               <button
                 onClick={() => setShowSaveDialog(true)}
-                className="p-2 sm:p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
+                className="hidden sm:block p-2 sm:p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
               >
                 <Save size={18} strokeWidth={3} />
               </button>
@@ -470,16 +564,6 @@ export default function Home() {
                 {theme === 'vs-dark' ? <Sun size={20} strokeWidth={3} /> : <Moon size={20} strokeWidth={3} />}
               </button>
             </Tooltip>
-          </div>
-
-          {/* Mobile: theme toggle only */}
-          <div className="flex md:hidden items-center gap-1">
-            <button
-              onClick={() => setTheme(theme === 'vs-dark' ? 'noir' : 'vs-dark')}
-              className="p-2 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
-            >
-              {theme === 'vs-dark' ? <Sun size={16} strokeWidth={3} /> : <Moon size={16} strokeWidth={3} />}
-            </button>
           </div>
         </div>
       </header>
@@ -592,7 +676,7 @@ export default function Home() {
                   executionTime={executionTime}
                   complexity={complexity}
                   terminalPosition="bottom"
-                  onTogglePosition={() => {}}
+                  onTogglePosition={() => { }}
                   onClear={() => {
                     setOutput('');
                     setError(null);
@@ -629,60 +713,7 @@ export default function Home() {
           </AnimatePresence>
         </div>
 
-        {/* Mobile Bottom Nav */}
-        <nav className="flex shrink-0 border-t border-[#222] bg-black h-16 relative">
-          {/* Editor — always-on indicator (base view) */}
-          <button
-            onClick={() => setMobileOverlay('none')}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
-              mobileOverlay === 'none' ? 'text-white' : 'text-white/30 hover:text-white/60'
-            }`}
-          >
-            <Code size={18} strokeWidth={mobileOverlay === 'none' ? 2.5 : 2} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Editor</span>
-            {mobileOverlay === 'none' && <div className="absolute bottom-0 h-0.5 w-10 bg-white rounded-t-full" />}
-          </button>
 
-          {/* Output toggle */}
-          <button
-            onClick={() => toggleMobileOverlay('output')}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 relative transition-all ${
-              mobileOverlay === 'output' ? 'text-white' : 'text-white/30 hover:text-white/60'
-            }`}
-          >
-            <TerminalIcon size={18} strokeWidth={mobileOverlay === 'output' ? 2.5 : 2} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Output</span>
-            {/* Dot indicator when there's output but panel is closed */}
-            {(output || error) && mobileOverlay !== 'output' && (
-              <div className="absolute top-2.5 right-[calc(50%-12px)] h-1.5 w-1.5 rounded-full bg-[#00a3ff]" />
-            )}
-            {mobileOverlay === 'output' && <div className="absolute bottom-0 h-0.5 w-10 bg-white rounded-t-full" />}
-          </button>
-
-          {/* Library toggle */}
-          <button
-            onClick={() => toggleMobileOverlay('library')}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 relative transition-all ${
-              mobileOverlay === 'library' ? 'text-white' : 'text-white/30 hover:text-white/60'
-            }`}
-          >
-            <BookOpen size={18} strokeWidth={mobileOverlay === 'library' ? 2.5 : 2} />
-            <span className="text-[9px] font-black uppercase tracking-widest">Library</span>
-            {mobileOverlay === 'library' && <div className="absolute bottom-0 h-0.5 w-10 bg-white rounded-t-full" />}
-          </button>
-
-          {/* AI toggle */}
-          <button
-            onClick={toggleChat}
-            className={`flex-1 flex flex-col items-center justify-center gap-1 relative transition-all ${
-              isChatOpen ? 'text-[#06B6D4]' : 'text-white/30 hover:text-white/60'
-            }`}
-          >
-            <Sparkles size={18} strokeWidth={isChatOpen ? 2.5 : 2} className={isChatOpen ? 'fill-[#06B6D4]' : ''} />
-            <span className="text-[9px] font-black uppercase tracking-widest">AI</span>
-            {isChatOpen && <div className="absolute bottom-0 h-0.5 w-10 bg-[#06B6D4] rounded-t-full" />}
-          </button>
-        </nav>
       </main>
 
       {/* Save Dialog Backdrop */}
