@@ -14,6 +14,9 @@ import {
   Moon,
   X,
   Sparkles,
+  Code,
+  Terminal as TerminalIcon,
+  BookOpen,
 } from 'lucide-react';
 import Tooltip from '@/components/ui/Tooltip';
 import dynamic from 'next/dynamic';
@@ -74,7 +77,7 @@ int main() {
   go: `package main
 import "fmt"
 func main() {
-	fmt.Println("Welcome to Go Compiler!")
+\tfmt.Println("Welcome to Go Compiler!")
 }
 `,
   rust: `fn main() {
@@ -118,9 +121,31 @@ export default function Home() {
     tags: '',
   });
 
+  // Mobile overlay state — editor is always the base
+  const [mobileOverlay, setMobileOverlay] = useState<'none' | 'output' | 'library'>('none');
+  const [isMobile, setIsMobile] = useState(false);
+
+  const toggleMobileOverlay = (panel: 'output' | 'library') => {
+    setMobileOverlay(prev => prev === panel ? 'none' : panel);
+  };
+
   const { isOpen: isChatOpen, toggleChat, setEditorCode } = useChat();
   const [isLanguageMenuOpen, setIsLanguageMenuOpen] = useState(false);
   const languageMenuRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile and force terminal to bottom
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setTerminalPosition('bottom');
+      }
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Sync code to Chat Context
   useEffect(() => {
@@ -152,6 +177,8 @@ export default function Home() {
     setOutput('');
     setError(null);
     setExecutionTime(null);
+    // Auto-open output overlay on mobile when running
+    if (isMobile) setMobileOverlay('output');
 
     try {
       const response = await fetch('/api/execute', {
@@ -232,6 +259,7 @@ export default function Home() {
     setOutput('');
     setError(null);
     setExecutionTime(null);
+    if (isMobile) setMobileOverlay('none');
   };
 
   const handleLoadSnippet = (snippetCode: string, snippetLanguage: string) => {
@@ -242,6 +270,7 @@ export default function Home() {
     setOutput('');
     setError(null);
     setExecutionTime(null);
+    if (isMobile) setMobileOverlay('none');
   };
 
   const handleDownload = () => {
@@ -328,14 +357,14 @@ export default function Home() {
 
   return (
     <div className="flex h-screen flex-col bg-black text-white font-sans selection:bg-white/20" onKeyDown={handleKeyDown}>
-      {/* Vercel Noir Header - Refined 2026 */}
-      <header className="flex h-14 items-center justify-between border-b border-[#222] bg-black px-5 shrink-0 relative z-30">
-        <div className="flex items-center gap-8">
-          <div className="flex items-center gap-4 text-white uppercase tracking-tighter">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 border-white/10 p-1.5 font-bold">
+      {/* Header */}
+      <header className="flex h-14 items-center justify-between border-b border-[#222] bg-black px-3 sm:px-5 shrink-0 relative z-30">
+        <div className="flex items-center gap-3 sm:gap-8">
+          <div className="flex items-center gap-2 sm:gap-4 text-white uppercase tracking-tighter">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl overflow-hidden shrink-0 border-white/10 p-1.5 font-bold">
               <img src="/icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
             </div>
-            <span className="text-xl font-black hidden sm:block">Tounge</span>
+            <span className="text-lg sm:text-xl font-black hidden sm:block">Tounge</span>
           </div>
 
           <div className="h-6 w-px bg-[#222] hidden sm:block" />
@@ -343,11 +372,13 @@ export default function Home() {
           <div ref={languageMenuRef} className="relative z-50">
             <div
               onClick={() => setIsLanguageMenuOpen(!isLanguageMenuOpen)}
-              className={`flex items-center gap-2 cursor-pointer group px-3 py-1.5 rounded-lg transition-all border ${isLanguageMenuOpen ? 'bg-[#111] border-[#222] text-white' : 'border-transparent hover:bg-[#111] text-white/70 hover:text-white'}`}
+              className={`flex items-center gap-1.5 sm:gap-2 cursor-pointer group px-2 sm:px-3 py-1.5 rounded-lg transition-all border ${isLanguageMenuOpen ? 'bg-[#111] border-[#222] text-white' : 'border-transparent hover:bg-[#111] text-white/70 hover:text-white'}`}
             >
               <span className="text-xs font-bold uppercase tracking-wider hidden sm:block select-none">{currentLanguage?.name}</span>
+              {/* Show short name on mobile */}
+              <span className="text-[10px] font-bold uppercase tracking-wider sm:hidden select-none">{currentLanguage?.name?.slice(0, 2)}</span>
               <ChevronDown
-                size={16}
+                size={14}
                 strokeWidth={3}
                 className={`transition-transform duration-300 ${isLanguageMenuOpen ? 'rotate-180 text-white' : 'text-white/50 group-hover:text-white'}`}
               />
@@ -360,7 +391,7 @@ export default function Home() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 8 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute top-full left-0 mt-2 w-56 bg-[#050505] border border-[#222] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 overflow-hidden flex flex-col"
+                  className="absolute top-full left-0 mt-2 w-48 sm:w-56 bg-[#050505] border border-[#222] rounded-xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] py-2 overflow-hidden flex flex-col"
                 >
                   <span className="px-4 py-2 text-[10px] uppercase tracking-[0.2em] font-bold text-[#444] select-none">Select Runtime</span>
                   {LANGUAGES.map((lang) => (
@@ -384,35 +415,37 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-6">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={handleRunCode}
               disabled={isRunning}
-              style={{ backgroundColor: '#ffffff', color: '#000000', minWidth: '100px' }}
-              className="flex items-center justify-center gap-2 h-8 px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50"
+              style={{ backgroundColor: '#ffffff', color: '#000000' }}
+              className="flex items-center justify-center gap-1.5 sm:gap-2 h-8 px-3 sm:px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50 min-w-[60px]"
             >
               {isRunning ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-black border-t-transparent" />
               ) : (
-                <Play size={14} fill="#000000" strokeWidth={3} color="#000000" />
+                <Play size={12} fill="#000000" strokeWidth={3} color="#000000" />
               )}
-              <span>{isRunning ? 'RUNNING' : 'EXECUTE'}</span>
+              <span className="sm:hidden">{isRunning ? 'RUN' : 'RUN'}</span>
+              <span className="hidden sm:inline">{isRunning ? 'RUNNING' : 'EXECUTE'}</span>
             </button>
 
             <Tooltip content="Save" position="bottom">
               <button
                 onClick={() => setShowSaveDialog(true)}
-                className="p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
+                className="p-2 sm:p-2.5 rounded-full hover:bg-[#111] text-white/50 hover:text-white transition-all active:scale-95"
               >
-                <Save size={20} strokeWidth={3} />
+                <Save size={18} strokeWidth={3} />
               </button>
             </Tooltip>
           </div>
 
-          <div className="w-px h-5 bg-[#222] hidden sm:block" />
+          {/* Secondary actions — hidden on mobile */}
+          <div className="w-px h-5 bg-[#222] hidden md:block" />
 
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <Tooltip content="Upload" position="bottom">
               <button
                 onClick={handleUpload}
@@ -438,10 +471,21 @@ export default function Home() {
               </button>
             </Tooltip>
           </div>
+
+          {/* Mobile: theme toggle only */}
+          <div className="flex md:hidden items-center gap-1">
+            <button
+              onClick={() => setTheme(theme === 'vs-dark' ? 'noir' : 'vs-dark')}
+              className="p-2 rounded-full hover:bg-[#111] text-white/40 hover:text-white transition-all"
+            >
+              {theme === 'vs-dark' ? <Sun size={16} strokeWidth={3} /> : <Moon size={16} strokeWidth={3} />}
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="flex flex-1 overflow-hidden">
+      {/* ===== DESKTOP LAYOUT (md+) ===== */}
+      <main className="hidden md:flex flex-1 overflow-hidden">
         {/* Unified Sidebar */}
         <motion.div
           initial={{ width: 64 }}
@@ -512,6 +556,135 @@ export default function Home() {
         </PanelGroup>
       </main>
 
+      {/* ===== MOBILE LAYOUT (< md) ===== */}
+      <main className="flex md:hidden flex-1 overflow-hidden flex-col relative">
+        {/* Editor is always the persistent base */}
+        <div className="flex-1 overflow-hidden relative">
+          <div className="absolute inset-0">
+            <div className="relative h-full">
+              <div className="absolute bottom-4 right-4 z-10 opacity-20 pointer-events-none">
+                <span className="text-xs font-mono uppercase tracking-[0.2em] font-bold">{language}</span>
+              </div>
+              <CodeEditor
+                value={code}
+                onChange={setCode}
+                language={language}
+                theme={theme}
+              />
+            </div>
+          </div>
+
+          {/* Output Overlay — slides up from the bottom */}
+          <AnimatePresence>
+            {mobileOverlay === 'output' && (
+              <motion.div
+                key="output-overlay"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="absolute inset-0 z-20 bg-black"
+              >
+                <OutputPanel
+                  output={output}
+                  error={error}
+                  isRunning={isRunning}
+                  executionTime={executionTime}
+                  complexity={complexity}
+                  terminalPosition="bottom"
+                  onTogglePosition={() => {}}
+                  onClear={() => {
+                    setOutput('');
+                    setError(null);
+                    setExecutionTime(null);
+                    setComplexity(null);
+                  }}
+                  codeContext={code}
+                  language={language}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Library Overlay — slides in from the bottom */}
+          <AnimatePresence>
+            {mobileOverlay === 'library' && (
+              <motion.div
+                key="library-overlay"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="absolute inset-0 z-20 bg-black"
+              >
+                <SnippetsPanel
+                  onLoadSnippet={handleLoadSnippet}
+                  onEditSnippet={handleEditSnippet}
+                  activeSnippetId={editingSnippetId}
+                  isExpanded={true}
+                  refreshTrigger={snippetsRefresh}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Mobile Bottom Nav */}
+        <nav className="flex shrink-0 border-t border-[#222] bg-black h-16 relative">
+          {/* Editor — always-on indicator (base view) */}
+          <button
+            onClick={() => setMobileOverlay('none')}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 transition-all ${
+              mobileOverlay === 'none' ? 'text-white' : 'text-white/30 hover:text-white/60'
+            }`}
+          >
+            <Code size={18} strokeWidth={mobileOverlay === 'none' ? 2.5 : 2} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Editor</span>
+            {mobileOverlay === 'none' && <div className="absolute bottom-0 h-0.5 w-10 bg-white rounded-t-full" />}
+          </button>
+
+          {/* Output toggle */}
+          <button
+            onClick={() => toggleMobileOverlay('output')}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 relative transition-all ${
+              mobileOverlay === 'output' ? 'text-white' : 'text-white/30 hover:text-white/60'
+            }`}
+          >
+            <TerminalIcon size={18} strokeWidth={mobileOverlay === 'output' ? 2.5 : 2} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Output</span>
+            {/* Dot indicator when there's output but panel is closed */}
+            {(output || error) && mobileOverlay !== 'output' && (
+              <div className="absolute top-2.5 right-[calc(50%-12px)] h-1.5 w-1.5 rounded-full bg-[#00a3ff]" />
+            )}
+            {mobileOverlay === 'output' && <div className="absolute bottom-0 h-0.5 w-10 bg-white rounded-t-full" />}
+          </button>
+
+          {/* Library toggle */}
+          <button
+            onClick={() => toggleMobileOverlay('library')}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 relative transition-all ${
+              mobileOverlay === 'library' ? 'text-white' : 'text-white/30 hover:text-white/60'
+            }`}
+          >
+            <BookOpen size={18} strokeWidth={mobileOverlay === 'library' ? 2.5 : 2} />
+            <span className="text-[9px] font-black uppercase tracking-widest">Library</span>
+            {mobileOverlay === 'library' && <div className="absolute bottom-0 h-0.5 w-10 bg-white rounded-t-full" />}
+          </button>
+
+          {/* AI toggle */}
+          <button
+            onClick={toggleChat}
+            className={`flex-1 flex flex-col items-center justify-center gap-1 relative transition-all ${
+              isChatOpen ? 'text-[#06B6D4]' : 'text-white/30 hover:text-white/60'
+            }`}
+          >
+            <Sparkles size={18} strokeWidth={isChatOpen ? 2.5 : 2} className={isChatOpen ? 'fill-[#06B6D4]' : ''} />
+            <span className="text-[9px] font-black uppercase tracking-widest">AI</span>
+            {isChatOpen && <div className="absolute bottom-0 h-0.5 w-10 bg-[#06B6D4] rounded-t-full" />}
+          </button>
+        </nav>
+      </main>
+
       {/* Save Dialog Backdrop */}
       <AnimatePresence>
         {showSaveDialog && (
@@ -524,24 +697,31 @@ export default function Home() {
               setEditingSnippetId(null);
               setNewSnippet({ title: '', description: '', tags: '' });
             }}
-            className="fixed inset-0 z-50 flex items-center justify-center  backdrop-blur-xs p-24"
+            className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-xs p-4 sm:p-12 md:p-24"
           >
             <motion.div
               initial={{ scale: 0.99, opacity: 0, y: 15 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.99, opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[760px] rounded-[48px] border border-white/5 bg-[#0a0a0a] p-32 shadow-[0_64px_256px_rgba(0,0,0,1)] flex flex-col"
+              className="w-full max-w-[760px] rounded-[24px] sm:rounded-[36px] md:rounded-[48px] border border-white/5 bg-[#0a0a0a] p-6 sm:p-14 md:p-20 shadow-[0_64px_256px_rgba(0,0,0,1)] flex flex-col"
             >
-              <div className="space-y-32">
-                <div className="space-y-6">
-                  <h3 className="text-[12px] font-black uppercase tracking-[1em] text-white/10">{editingSnippetId ? 'Update Protocol' : 'Archive Protocol'}</h3>
-                  <h2 className="text-6xl font-black tracking-tighter text-white">{editingSnippetId ? 'Update Logic' : 'Commit Logic'}</h2>
+              <div className="space-y-8 sm:space-y-16 md:space-y-20">
+                {/* Title */}
+                <div className="space-y-2 sm:space-y-4">
+                  <h3 className="text-[11px] font-black uppercase tracking-[0.5em] sm:tracking-[1em] text-white/10">
+                    {editingSnippetId ? 'Update Protocol' : 'Archive Protocol'}
+                  </h3>
+                  <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white">
+                    {editingSnippetId ? 'Update Logic' : 'Commit Logic'}
+                  </h2>
                 </div>
 
-                <div className="space-y-24">
-                  <div className="space-y-8">
-                    <label className="text-[12px] font-bold text-[#444] uppercase tracking-[0.5em] px-2 flex items-center gap-6">
+                {/* Fields */}
+                <div className="space-y-4 sm:space-y-8">
+                  {/* Title Input */}
+                  <div className="space-y-2 sm:space-y-3">
+                    <label className="text-[11px] font-bold text-[#444] uppercase tracking-[0.3em] sm:tracking-[0.5em] px-1 flex items-center gap-4">
                       Logic Identifier
                       <div className="h-px flex-1 bg-white/5" />
                     </label>
@@ -549,39 +729,41 @@ export default function Home() {
                       type="text"
                       value={newSnippet.title}
                       onChange={(e) => setNewSnippet({ ...newSnippet, title: e.target.value })}
-                      className="w-full bg-[#1e1e1e] border border-white/5 rounded-2xl py-8 px-10 text-2xl font-bold text-white outline-none focus:border-[#00a3ff]/40 focus:ring-12 focus:ring-[#00a3ff]/5 transition-all placeholder-[#222]"
+                      className="w-full bg-[#1e1e1e] border border-white/5 rounded-xl sm:rounded-2xl py-3 sm:py-5 md:py-8 px-4 sm:px-8 text-base sm:text-xl md:text-2xl font-bold text-white outline-none focus:border-[#00a3ff]/40 transition-all placeholder-[#333]"
                       placeholder="Enter script name..."
                       autoFocus
                     />
                   </div>
 
-                  <div className="flex items-center gap-10 p-12 rounded-[40px] border border-white/5 bg-white/2 mx-1 shadow-inner">
-                    <div className="flex h-24 w-24 items-center justify-center rounded-3xl bg-black border border-white/10 shadow-2xl">
-                      <Code2 size={40} className="text-white/20" />
+                  {/* Language Badge */}
+                  <div className="flex items-center gap-4 sm:gap-8 p-4 sm:p-8 rounded-2xl sm:rounded-[28px] border border-white/5 bg-white/2">
+                    <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-black border border-white/10">
+                      <Code2 size={24} className="text-white/20" />
                     </div>
-                    <div className="flex flex-col gap-2">
-                      <span className="text-[13px] font-bold text-white/20 uppercase tracking-[0.6em] leading-none">Platform Runtime</span>
-                      <span className="text-3xl font-black text-white uppercase tracking-tight">{currentLanguage?.name} Core</span>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[11px] font-bold text-white/20 uppercase tracking-[0.4em] leading-none">Platform Runtime</span>
+                      <span className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-tight">{currentLanguage?.name} Core</span>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-8 pt-24">
+                  {/* Action Buttons */}
+                  <div className="flex items-center gap-3 sm:gap-6 pt-4 sm:pt-8">
                     <button
                       onClick={() => {
                         setShowSaveDialog(false);
                         setEditingSnippetId(null);
                         setNewSnippet({ title: '', description: '', tags: '' });
                       }}
-                      className="flex-1 flex items-center justify-center gap-4 py-8 rounded-2xl border border-white/5 bg-white/2 text-white/40 text-[11px] font-black uppercase tracking-[0.5em] hover:bg-white/5 hover:text-white transition-all active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-6 rounded-xl sm:rounded-2xl border border-white/5 bg-white/2 text-white/40 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] hover:bg-white/5 hover:text-white transition-all active:scale-95"
                     >
-                      <X size={24} strokeWidth={3} />
+                      <X size={16} strokeWidth={3} />
                       <span>Cancel</span>
                     </button>
                     <button
                       onClick={handleSaveSnippet}
-                      className="flex-2 flex items-center justify-center gap-5 py-8 bg-white text-[#00a3ff] text-sm font-black uppercase tracking-[0.5em] rounded-2xl hover:bg-neutral-100 transition-all active:scale-95 shadow-[0_30px_100px_rgba(0,163,255,0.2)]"
+                      className="flex-2 flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-6 bg-white text-[#00a3ff] text-[10px] sm:text-sm font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] rounded-xl sm:rounded-2xl hover:bg-neutral-100 transition-all active:scale-95 shadow-[0_20px_60px_rgba(0,163,255,0.2)]"
                     >
-                      <Save size={24} strokeWidth={3} />
+                      <Save size={16} strokeWidth={3} />
                       <span>{editingSnippetId ? 'Update Logic' : 'Archive Logic'}</span>
                     </button>
                   </div>
@@ -592,39 +774,35 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Minimal Footer */}
-      <footer className="h-12 flex items-center justify-between border-t border-[#222] bg-black px-6 text-xs shrink-0">
-        <div className="flex items-center gap-8 text-white font-bold">
+      {/* Footer — Desktop only */}
+      <footer className="hidden md:flex h-12 items-center justify-between border-t border-[#222] bg-black px-6 text-xs shrink-0">
+        <div className="flex items-center gap-4 lg:gap-8 text-white font-bold">
           <div className="flex items-center gap-3">
             <div className={`h-2.5 w-2.5 rounded-full ${isRunning ? 'bg-yellow-400 animate-pulse' : 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.6)]'}`} />
             <span className="uppercase tracking-widest">Engine Online</span>
           </div>
           <span className="text-[#333]">|</span>
           <span className="uppercase tracking-widest text-[#888]">{currentLanguage?.name}</span>
-          <span className="text-[#333]">|</span>
-          <span className="uppercase tracking-widest text-[#666] text-[10px] -2">AI : Ctrl + Q</span>
-          <span className="uppercase tracking-widest text-[#666] text-[10px]">Chat Min/Max : Ctrl + F</span>
-          <span className="uppercase tracking-widest text-[#666] text-[10px] flex items-center justify-center gap-2"><PanelRightClose size={18} /> : ESC</span>
-          <span className="uppercase tracking-widest text-[#666] text-[10px]">Save: Ctrl + S</span>
-          <span className="uppercase tracking-widest text-[#666] text-[10px]">Layout: Ctrl + `</span>
-          <span className="uppercase tracking-widest text-[#666] text-[10px]">Run: Ctrl + F8</span>
+          <span className="text-[#333] hidden lg:block">|</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] hidden lg:block">AI : Ctrl + Q</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] hidden lg:block">Chat Min/Max : Ctrl + F</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] hidden lg:flex items-center justify-center gap-2"><PanelRightClose size={18} /> : ESC</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] hidden lg:block">Save: Ctrl + S</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] hidden xl:block">Layout: Ctrl + `</span>
+          <span className="uppercase tracking-widest text-[#666] text-[10px] hidden xl:block">Run: Ctrl + F8</span>
         </div>
 
         <div className="flex items-center gap-2 text-white font-bold uppercase tracking-widest">
-
-
           <button
             onClick={toggleChat}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#06B6D4] text-[#06B6D4] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
           >
             <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#06B6D4]" : ""} />
-            <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4 "
+            <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4"
               style={{ marginRight: "10px" }}>Ask TOUNGE</span>
           </button>
-
-          {/* <span className="px-3 py-1 rounded bg-[#111] border border-[#222] text-white">TOUNGE</span> */}
         </div>
       </footer>
-    </div >
+    </div>
   );
 }

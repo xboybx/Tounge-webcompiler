@@ -262,7 +262,7 @@ export default function FloatingChat() {
     const messageTextClass = isExpanded ? 'text-[15px]' : 'text-xs';
 
     return (
-        <div className="fixed bottom-8 right-8 z-[100] flex flex-col items-end pointer-events-none font-sans">
+        <div className="fixed bottom-20 right-3 md:bottom-8 md:right-8 z-[100] flex flex-col items-end pointer-events-none font-sans">
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
@@ -271,8 +271,12 @@ export default function FloatingChat() {
                         animate={{ opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' }}
                         exit={{ opacity: 0, scale: 0.9, y: 20, filter: 'blur(10px)' }}
                         transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
-                        // Glassmorphism Container
-                        className={`pointer-events-auto mb-6 flex flex-col relative overflow-hidden origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isExpanded ? 'w-[800px] h-[700px]' : 'w-[400px] h-[500px]'} bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 shadow-2xl rounded-lg`}
+                        // Glassmorphism Container — responsive sizing
+                        className={`pointer-events-auto mb-2 md:mb-6 flex flex-col relative overflow-hidden origin-bottom-right transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                            isExpanded
+                                ? 'w-[calc(100vw-1.5rem)] h-[calc(100vh-7rem)] md:w-[800px] md:h-[700px]'
+                                : 'w-[calc(100vw-1.5rem)] h-[75vh] md:w-[400px] md:h-[500px]'
+                        } bg-[#0a0a0a]/60 backdrop-blur-xl border border-white/10 shadow-2xl rounded-lg`}
                         style={{
                             // Glass effect handled by classes
                         }}
