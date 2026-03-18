@@ -18,6 +18,7 @@ import {
   Terminal as TerminalIcon,
   BookOpen,
   MoreVertical,
+  Check,
 } from 'lucide-react';
 import Tooltip from '@/components/ui/Tooltip';
 import dynamic from 'next/dynamic';
@@ -111,6 +112,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [executionTime, setExecutionTime] = useState<number | null>(null);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
   const [snippetsRefresh, setSnippetsRefresh] = useState(0);
 
   const [complexity, setComplexity] = useState<{ time: string; space: string } | null>(null);
@@ -221,6 +224,8 @@ export default function Home() {
       return;
     }
 
+    setIsSaving(true);
+    setIsSaved(false);
     try {
       const url = editingSnippetId
         ? `/api/snippets/${editingSnippetId}`
@@ -243,13 +248,24 @@ export default function Home() {
       const data = await response.json();
 
       if (data.success) {
-        setShowSaveDialog(false);
-        setNewSnippet({ title: '', description: '', tags: '' });
-        setEditingSnippetId(null);
+        setIsSaved(true);
         setSnippetsRefresh(prev => prev + 1);
+        
+        // Short delay for feedback before closing
+        setTimeout(() => {
+          setShowSaveDialog(false);
+          setNewSnippet({ title: '', description: '', tags: '' });
+          setEditingSnippetId(null);
+          setIsSaved(false);
+        }, 1500);
+      } else {
+        alert(data.error || 'Failed to save script');
       }
     } catch (error) {
       console.error('Error saving snippet:', error);
+      alert('An unexpected error occurred while saving.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -792,10 +808,19 @@ export default function Home() {
                     </button>
                     <button
                       onClick={handleSaveSnippet}
-                      className="flex-2 flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-6 bg-white text-[#00a3ff] text-[10px] sm:text-sm font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] rounded-xl sm:rounded-2xl hover:bg-neutral-100 transition-all active:scale-95 shadow-[0_20px_60px_rgba(0,163,255,0.2)]"
+                      disabled={isSaving || isSaved}
+                      className={`flex-2 flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-6 text-[10px] sm:text-sm font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] rounded-xl sm:rounded-2xl transition-all active:scale-95 shadow-[0_20px_60px_rgba(0,163,255,0.2)] disabled:opacity-50 ${isSaved ? 'bg-emerald-500 text-white' : 'bg-white text-[#00a3ff] hover:bg-neutral-100'}`}
                     >
-                      <Save size={16} strokeWidth={3} />
-                      <span>{editingSnippetId ? 'Update Logic' : 'Archive Logic'}</span>
+                      {isSaving ? (
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#00a3ff] border-t-transparent" />
+                      ) : isSaved ? (
+                        <motion.div initial={{ scale: 0.5 }} animate={{ scale: 1 }}><Check className="w-4 h-4" /></motion.div>
+                      ) : (
+                        <Save size={16} strokeWidth={3} />
+                      )}
+                      <span>
+                        {isSaving ? 'Saving...' : isSaved ? 'Saved Successfully' : (editingSnippetId ? 'Update Logic' : 'Archive Logic')}
+                      </span>
                     </button>
                   </div>
                 </div>
