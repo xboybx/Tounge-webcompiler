@@ -106,7 +106,7 @@ function FileTreeNode({
             <div
                 onClick={handleClick}
                 className={cn(
-                    'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-zinc-800',
+                    'flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors hover:bg-zinc-800 ',
                     selectedFile === node.path && 'bg-zinc-800 text-blue-400'
                 )}
                 style={{ paddingLeft: `${level * 12 + 8}px` }}

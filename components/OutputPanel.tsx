@@ -116,8 +116,7 @@ export default function OutputPanel({
         <div className="flex h-full flex-col bg-black border-l border-[#111]">
             {/* Header */}
             <div
-                className="flex h-14 items-center justify-between border-b border-[#111] bg-[#050505] shrink-0"
-                style={{ paddingLeft: '20px', paddingRight: '20px' }}
+                className="flex h-14 items-center justify-between border-b border-[#111] bg-[#050505] shrink-0 px-4"
             >
                 <div className="flex items-center gap-6">
                     <div className="flex items-center gap-3">
@@ -175,14 +174,14 @@ export default function OutputPanel({
 
             {/* Main Content Area */}
             <div
-                className="flex-1 overflow-auto py-14 font-mono scrollbar-hide selection:bg-white/20"
+                className="flex-1 overflow-auto font-mono scrollbar-hide selection:bg-white/20"
 
             >
                 <div>
                     {/* AI Explanation Injection */}
                     {aiMode && aiComplexity?.explanation && !error && output && (
-                        <div className="mb-8 border border-white/10 rounded-xl bg-white/5 overflow-hidden "
-                            style={{ marginLeft: '9px', marginTop: '0px' }}>
+                        <div className=" border border-white/10 rounded-xl bg-white/5 overflow-hidden"
+                        >
                             {/* Collapsible Header */}
                             <button
                                 onClick={() => setIsAiExpanded(!isAiExpanded)}
@@ -283,7 +282,7 @@ export default function OutputPanel({
                         </div>
                         <div className="relative pl-6">
                             <div className="absolute left-0 top-0 bottom-0 w-px bg-white/10" />
-                            <pre className="text-[13px] leading-7 whitespace-pre-wrap text-white/90 font-mono">{`=> ${output}`}</pre>
+                            <pre className="text-[13px] leading-7 whitespace-pre-wrap text-white/90 font-mono">{` ${output}`}</pre>
                         </div>
                     </motion.div>
                 ) : (

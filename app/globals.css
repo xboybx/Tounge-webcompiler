@@ -23,24 +23,34 @@
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
 
-html,
-body {
-  height: 100%;
-  overflow: hidden;
-  background: var(--background);
-  color: var(--foreground);
-  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
-}
+  html,
+  body {
+    height: 100%;
+    overflow: hidden;
+    background: var(--background);
+    color: var(--foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
 
-body {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  body {
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button {
+    cursor: pointer;
+    border: none;
+    background: none;
+    font-family: inherit;
+    outline: none;
+  }
 }
 
 /* Custom Scrollbar - Ultra Minimal */
@@ -98,15 +108,6 @@ body {
 
 .transition-geist {
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Button Reset */
-button {
-  cursor: pointer;
-  border: none;
-  background: none;
-  font-family: inherit;
-  outline: none;
 }
 
 /* .monaco-editor .margin-view-overlays {

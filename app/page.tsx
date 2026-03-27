@@ -16,15 +16,17 @@ import {
   Sparkles,
   Code,
   Terminal as TerminalIcon,
-  BookOpen,
+  ChartNoAxesGantt,
   MoreVertical,
   Check,
 } from 'lucide-react';
+
 import Tooltip from '@/components/ui/Tooltip';
 import dynamic from 'next/dynamic';
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import SnippetsPanel from '@/components/SnippetsPanel';
 import OutputPanel from '@/components/OutputPanel';
+import ChatSidebar from '@/components/ChatSidebar';
 import Image from 'next/image';
 
 import { useChat } from '@/components/providers/ChatProvider';
@@ -105,7 +107,35 @@ export default function Home() {
   const [code, setCode] = useState(DEFAULT_CODE.javascript);
   const [language, setLanguage] = useState('javascript');
   const [theme, setTheme] = useState<'vs-dark' | 'noir'>('vs-dark');
-  const [showSnippets, setShowSnippets] = useState(false);
+  const [activeSidebar, setActiveSidebar] = useState<'snippets' | null>(null);
+  const [showTerminal, setShowTerminal] = useState(false);
+  const [chatWidth, setChatWidth] = useState(340);
+  const [isResizingChat, setIsResizingChat] = useState(false);
+
+  useEffect(() => {
+    if (!isResizingChat) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const offset = 64 + (activeSidebar === 'snippets' ? 340 : 0);
+      const newWidth = e.clientX - offset;
+
+      if (newWidth > 280 && newWidth < 800) {
+        setChatWidth(newWidth);
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingChat(false);
+      document.body.style.cursor = 'default';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingChat, activeSidebar]);
   const [terminalPosition, setTerminalPosition] = useState<'right' | 'bottom'>('right');
   const [isRunning, setIsRunning] = useState(false);
   const [output, setOutput] = useState('');
@@ -126,10 +156,10 @@ export default function Home() {
   });
 
   // Mobile overlay state — editor is always the base
-  const [mobileOverlay, setMobileOverlay] = useState<'none' | 'output' | 'library'>('none');
+  const [mobileOverlay, setMobileOverlay] = useState<'none' | 'output' | 'library' | 'chat'>('none');
   const [isMobile, setIsMobile] = useState(false);
 
-  const toggleMobileOverlay = (panel: 'output' | 'library') => {
+  const toggleMobileOverlay = (panel: 'output' | 'library' | 'chat') => {
     setMobileOverlay(prev => prev === panel ? 'none' : panel);
   };
 
@@ -188,6 +218,7 @@ export default function Home() {
     setExecutionTime(null);
     // Auto-open output overlay on mobile when running
     if (isMobile) setMobileOverlay('output');
+    else setShowTerminal(true);
 
     try {
       const response = await fetch('/api/execute', {
@@ -250,7 +281,7 @@ export default function Home() {
       if (data.success) {
         setIsSaved(true);
         setSnippetsRefresh(prev => prev + 1);
-        
+
         // Short delay for feedback before closing
         setTimeout(() => {
           setShowSaveDialog(false);
@@ -373,14 +404,16 @@ export default function Home() {
       setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right');
     }
     if (e.key === 'Escape') {
-      setShowSnippets(prev => !prev);
+      setActiveSidebar(null);
     }
   };
 
   return (
     <div className="flex h-screen flex-col bg-black text-white font-sans selection:bg-white/20" onKeyDown={handleKeyDown}>
       {/* Header */}
-      <header className="flex h-14 items-center justify-between border-b border-[#222] bg-black px-3 sm:px-5 shrink-0 relative z-30">
+      <header
+        className="flex h-14 items-center justify-between border-b border-[#222] bg-black shrink-0 relative z-30"
+      >
         <div className="flex items-center gap-3 sm:gap-8">
           <div className="flex items-center gap-2 sm:gap-4 text-white uppercase tracking-tighter">
             <button
@@ -389,7 +422,7 @@ export default function Home() {
             >
               <img src="/icon.png" alt="Tounge Logo" className="h-full w-full object-contain" />
             </button>
-            <span className="text-lg sm:text-xl font-black hidden sm:block">Tounge</span>
+            <span className="text-md sm:text-base font-black hidden sm:block">Tounge</span>
           </div>
 
           <div className="h-6 w-px bg-[#222] hidden sm:block" />
@@ -447,7 +480,7 @@ export default function Home() {
               onClick={handleRunCode}
               disabled={isRunning}
               style={{ backgroundColor: '#ffffff', color: '#000000' }}
-              className="hidden sm:flex items-center justify-center gap-1.5 sm:gap-2 h-8 px-3 sm:px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50 min-w-[60px]"
+              className="hidden sm:flex items-center justify-center gap-1.5 sm:gap-2 h-5 w-20 px-3 sm:px-4 rounded-full font-black text-[10px] hover:opacity-90 transition-all active:scale-95 disabled:opacity-50 shadow-[0_0_15px_rgba(255,255,255,0.2)] uppercase tracking-widest whitespace-nowrap z-50 min-w-[60px]"
             >
               {isRunning ? (
                 <div className="h-3 w-3 animate-spin rounded-full border-2 border-black border-t-transparent" />
@@ -528,12 +561,12 @@ export default function Home() {
 
                       <button
                         onClick={() => {
-                          toggleChat();
+                          setMobileOverlay('chat');
                           setIsMobileMenuOpen(false);
                         }}
-                        className={`w-full flex items-center gap-4 px-6 py-4.5 text-xs font-bold uppercase tracking-widest transition-all ${isChatOpen ? 'text-[#06B6D4] bg-[#06B6D4]/5' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
+                        className={`w-full flex items-center gap-4 px-6 py-4.5 text-xs font-bold uppercase tracking-widest transition-all ${mobileOverlay === 'chat' ? 'text-[#06B6D4] bg-[#06B6D4]/5' : 'text-white/70 hover:text-white hover:bg-white/5'}`}
                       >
-                        <Sparkles size={18} strokeWidth={2.5} className={isChatOpen ? 'fill-[#06B6D4]' : ''} />
+                        <Sparkles size={18} strokeWidth={2.5} className={mobileOverlay === 'chat' ? 'fill-[#06B6D4]' : ''} />
                         Ask AI
                       </button>
                     </motion.div>
@@ -586,39 +619,93 @@ export default function Home() {
 
       {/* ===== DESKTOP LAYOUT (md+) ===== */}
       <main className="hidden md:flex flex-1 overflow-hidden">
-        {/* Unified Sidebar */}
-        <motion.div
-          initial={{ width: 64 }}
-          animate={{ width: showSnippets ? 340 : 64 }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="h-full border-r border-[#222] bg-black flex flex-col shrink-0 relative z-50"
+        {/* Activity Bar */}
+        <div
+          className="w-[64px] h-full border-r border-[#222] bg-[#050505] flex flex-col items-center justify-between shrink-0 z-50"
+          style={{ paddingTop: '24px', paddingBottom: '24px' }}
         >
-          {/* Toggle Header */}
-          <div className={`h-16 flex items-center shrink-0 border-b border-[#222] ${showSnippets ? 'justify-end px-4' : 'justify-center'}`}>
-            <Tooltip content={showSnippets ? "Collapse" : "Expand"} position="right">
+          <div className="flex flex-col items-center" style={{ gap: '20px' }}>
+            <Tooltip content="Logic Archive" position="right">
               <button
-                onClick={() => setShowSnippets(!showSnippets)}
-                className={`p-3 rounded-xl transition-all active:scale-90 border border-transparent hover:bg-[#111] ${showSnippets ? 'text-white' : 'text-white/40'}`}
+                onClick={() => setActiveSidebar(activeSidebar === 'snippets' ? null : 'snippets')}
+                className={`p-3 rounded-xl transition-all ${activeSidebar === 'snippets' ? 'text-white bg-white/10' : 'text-white/40 hover:bg-[#111] hover:text-white'}`}
               >
-                <PanelRightClose size={20} className={`transition-transform duration-300 ${!showSnippets ? 'rotate-180' : ''}`} />
+                <ChartNoAxesGantt size={20} />
+              </button>
+            </Tooltip>
+
+            <Tooltip content="AI Assistant (Ctrl+Q)" position="right">
+              <button
+                onClick={toggleChat}
+                className={`p-3 rounded-xl transition-all ${isChatOpen ? 'text-[#06B6D4] bg-[#06B6D4]/10' : 'text-white/40 hover:bg-[#111] hover:text-white'}`}
+              >
+                <Sparkles size={20} className={isChatOpen ? 'fill-[#06B6D4]' : ''} />
               </button>
             </Tooltip>
           </div>
 
-          {/* Sidebar Content */}
-          <div className={`flex-1 w-[340px] overflow-hidden transition-opacity duration-300 ${showSnippets ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-            <SnippetsPanel
-              onLoadSnippet={handleLoadSnippet}
-              onEditSnippet={handleEditSnippet}
-              activeSnippetId={editingSnippetId}
-              isExpanded={showSnippets}
-              refreshTrigger={snippetsRefresh}
-            />
+          <div className="flex flex-col items-center" style={{ gap: '20px' }}>
+            <div className="w-8 h-px bg-[#222]" />
+            <Tooltip content="Terminal Panel" position="right">
+              <button
+                onClick={() => setShowTerminal(!showTerminal)}
+                className={`p-3 rounded-xl transition-all ${showTerminal ? 'text-[#00a3ff] bg-[#00a3ff]/10' : 'text-white/40 hover:bg-[#111] hover:text-white'}`}
+              >
+                <TerminalIcon size={20} />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
+        <motion.div
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: activeSidebar === 'snippets' ? 340 : 0, opacity: activeSidebar === 'snippets' ? 1 : 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+          className="h-full border-r border-[#222] bg-[#0A0A0A] overflow-hidden shrink-0 z-40 relative flex flex-col"
+        >
+          <div className="w-[340px] h-full flex flex-col">
+            {activeSidebar === 'snippets' && (
+              <SnippetsPanel
+                onLoadSnippet={handleLoadSnippet}
+                onEditSnippet={handleEditSnippet}
+                activeSnippetId={editingSnippetId}
+                isExpanded={true}
+                refreshTrigger={snippetsRefresh}
+              />
+            )}
           </div>
         </motion.div>
 
+        {/* AI Chat Sidebar (Now on the Left) */}
+        <motion.div
+          initial={{ width: 0, x: -20, opacity: 0 }}
+          animate={{
+            width: isChatOpen ? chatWidth : 0,
+            x: isChatOpen ? 0 : -20,
+            opacity: isChatOpen ? 1 : 0
+          }}
+          transition={isResizingChat ? { duration: 0 } : { type: 'spring', stiffness: 300, damping: 30 }}
+          className="h-full border-r border-[#222] bg-[#0A0A0A] overflow-hidden shrink-0 z-40 relative flex flex-col"
+        >
+          <div style={{ width: chatWidth }} className="h-full flex flex-col">
+            {isChatOpen && <ChatSidebar />}
+          </div>
+
+          {isChatOpen && (
+            <div
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setIsResizingChat(true);
+                document.body.style.cursor = 'col-resize';
+              }}
+              className="absolute right-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-[#06B6D4]/30 transition-colors z-50 flex items-center group"
+            >
+              <div className="w-px h-full bg-transparent group-hover:bg-[#06B6D4] transition-colors" />
+            </div>
+          )}
+        </motion.div>
+
         <PanelGroup orientation={terminalPosition === 'right' ? 'horizontal' : 'vertical'} className="flex-1">
-          <Panel defaultSize={70} minSize={20} className="relative">
+          <Panel defaultSize={showTerminal ? 70 : 100} minSize={20} className="relative">
             <div className="absolute bottom-6 right-6 z-10 opacity-30 pointer-events-none">
               <span className="text-sm font-mono uppercase tracking-[0.2em] font-bold">{language}</span>
             </div>
@@ -630,29 +717,33 @@ export default function Home() {
             />
           </Panel>
 
-          <PanelResizeHandle className={`relative group transition-colors hover:bg-white/10 ${terminalPosition === 'right' ? 'w-px' : 'h-px'}`}>
-            <div className={`absolute bg-[#222] transition-colors group-hover:bg-white/40 ${terminalPosition === 'right' ? 'inset-y-0 w-px' : 'inset-x-0 h-px'}`} />
-          </PanelResizeHandle>
+          {showTerminal && (
+            <>
+              <PanelResizeHandle className={`group shrink-0 flex items-center justify-center transition-colors z-50 hover:bg-white/5 ${terminalPosition === 'right' ? 'w-2 cursor-col-resize' : 'h-2 cursor-row-resize'}`}>
+                <div className={`bg-[#222] transition-colors group-hover:bg-[#00a3ff] ${terminalPosition === 'right' ? 'w-px h-full' : 'h-px w-full'}`} />
+              </PanelResizeHandle>
 
-          <Panel defaultSize={30} minSize={10}>
-            <OutputPanel
-              output={output}
-              error={error}
-              isRunning={isRunning}
-              executionTime={executionTime}
-              complexity={complexity}
-              terminalPosition={terminalPosition}
-              onTogglePosition={() => setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right')}
-              onClear={() => {
-                setOutput('');
-                setError(null);
-                setExecutionTime(null);
-                setComplexity(null);
-              }}
-              codeContext={code}
-              language={language}
-            />
-          </Panel>
+              <Panel defaultSize={30} minSize={10}>
+                <OutputPanel
+                  output={output}
+                  error={error}
+                  isRunning={isRunning}
+                  executionTime={executionTime}
+                  complexity={complexity}
+                  terminalPosition={terminalPosition}
+                  onTogglePosition={() => setTerminalPosition(terminalPosition === 'right' ? 'bottom' : 'right')}
+                  onClear={() => {
+                    setOutput('');
+                    setError(null);
+                    setExecutionTime(null);
+                    setComplexity(null);
+                  }}
+                  codeContext={code}
+                  language={language}
+                />
+              </Panel>
+            </>
+          )}
         </PanelGroup>
       </main>
 
@@ -717,6 +808,11 @@ export default function Home() {
                 transition={{ type: 'spring', stiffness: 320, damping: 32 }}
                 className="absolute inset-0 z-20 bg-black"
               >
+                <div className="absolute top-4 right-4 z-60">
+                  <button onClick={() => setMobileOverlay('none')} className="p-2 bg-white/10 rounded-full text-white backdrop-blur-md">
+                    <X size={20} />
+                  </button>
+                </div>
                 <SnippetsPanel
                   onLoadSnippet={handleLoadSnippet}
                   onEditSnippet={handleEditSnippet}
@@ -724,6 +820,27 @@ export default function Home() {
                   isExpanded={true}
                   refreshTrigger={snippetsRefresh}
                 />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Chat Overlay — slides in from the bottom */}
+          <AnimatePresence>
+            {mobileOverlay === 'chat' && (
+              <motion.div
+                key="chat-overlay"
+                initial={{ y: '100%' }}
+                animate={{ y: 0 }}
+                exit={{ y: '100%' }}
+                transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+                className="absolute inset-0 z-20 bg-black"
+              >
+                <div className="absolute top-4 right-4 z-60">
+                  <button onClick={() => setMobileOverlay('none')} className="p-2 bg-white/10 rounded-full text-white backdrop-blur-md">
+                    <X size={20} />
+                  </button>
+                </div>
+                <ChatSidebar />
               </motion.div>
             )}
           </AnimatePresence>
@@ -751,15 +868,15 @@ export default function Home() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.99, opacity: 0, y: 15 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-[760px] rounded-[24px] sm:rounded-[36px] md:rounded-[48px] border border-white/5 bg-[#0a0a0a] p-6 sm:p-14 md:p-20 shadow-[0_64px_256px_rgba(0,0,0,1)] flex flex-col"
+              className="w-full max-w-[720px] rounded-2xl border border-white/5 bg-[#0a0a0a] p-5 sm:p-8 shadow-[0_64px_256px_rgba(0,0,0,1)] flex flex-col"
             >
-              <div className="space-y-8 sm:space-y-16 md:space-y-20">
+              <div className="space-y-2 sm:space-y-4 md:space-y-6">
                 {/* Title */}
-                <div className="space-y-2 sm:space-y-4">
-                  <h3 className="text-[11px] font-black uppercase tracking-[0.5em] sm:tracking-[1em] text-white/10">
+                <div className="space-y-1 sm:space-y-2">
+                  <h3 className="text-[10px] font-black uppercase tracking-[0.4em] text-white/10">
                     {editingSnippetId ? 'Update Protocol' : 'Archive Protocol'}
                   </h3>
-                  <h2 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tighter text-white">
+                  <h2 className="text-2xl sm:text-3xl font-black tracking-tighter text-white">
                     {editingSnippetId ? 'Update Logic' : 'Commit Logic'}
                   </h2>
                 </div>
@@ -776,32 +893,32 @@ export default function Home() {
                       type="text"
                       value={newSnippet.title}
                       onChange={(e) => setNewSnippet({ ...newSnippet, title: e.target.value })}
-                      className="w-full bg-[#1e1e1e] border border-white/5 rounded-xl sm:rounded-2xl py-3 sm:py-5 md:py-8 px-4 sm:px-8 text-base sm:text-xl md:text-2xl font-bold text-white outline-none focus:border-[#00a3ff]/40 transition-all placeholder-[#333]"
+                      className="w-full bg-[#1e1e1e] border border-white/5 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 text-lg sm:text-xl font-bold text-white outline-none focus:border-[#00a3ff]/40 transition-all placeholder-[#333]"
                       placeholder="Enter script name..."
                       autoFocus
                     />
                   </div>
 
                   {/* Language Badge */}
-                  <div className="flex items-center gap-4 sm:gap-8 p-4 sm:p-8 rounded-2xl sm:rounded-[28px] border border-white/5 bg-white/2">
-                    <div className="flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-black border border-white/10">
-                      <Code2 size={24} className="text-white/20" />
+                  <div className="flex items-center gap-4 sm:gap-6 p-3 sm:p-4 rounded-xl border border-white/5 bg-white/2">
+                    <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-black border border-white/10">
+                      <Code2 size={20} className="text-white/20" />
                     </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="text-[11px] font-bold text-white/20 uppercase tracking-[0.4em] leading-none">Platform Runtime</span>
-                      <span className="text-xl sm:text-2xl md:text-3xl font-black text-white uppercase tracking-tight">{currentLanguage?.name} Core</span>
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-[10px] font-bold text-white/20 uppercase tracking-[0.3em] leading-none">Platform Runtime</span>
+                      <span className="text-lg sm:text-xl font-black text-white uppercase tracking-tight">{currentLanguage?.name} Core</span>
                     </div>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex items-center gap-3 sm:gap-6 pt-4 sm:pt-8">
+                  <div className="flex items-center gap-3 sm:gap-4 pt-2 sm:pt-4">
                     <button
                       onClick={() => {
                         setShowSaveDialog(false);
                         setEditingSnippetId(null);
                         setNewSnippet({ title: '', description: '', tags: '' });
                       }}
-                      className="flex-1 flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-6 rounded-xl sm:rounded-2xl border border-white/5 bg-white/2 text-white/40 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] hover:bg-white/5 hover:text-white transition-all active:scale-95"
+                      className="flex-1 flex items-center justify-center gap-2 sm:gap-3 py-4 rounded-xl sm:rounded-2xl border border-white/5 bg-white/2 text-white/40 text-[10px] sm:text-[11px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] hover:bg-white/5 hover:text-white transition-all active:scale-95"
                     >
                       <X size={16} strokeWidth={3} />
                       <span>Cancel</span>
@@ -809,7 +926,7 @@ export default function Home() {
                     <button
                       onClick={handleSaveSnippet}
                       disabled={isSaving || isSaved}
-                      className={`flex-2 flex items-center justify-center gap-2 sm:gap-4 py-3 sm:py-6 text-[10px] sm:text-sm font-black uppercase tracking-[0.3em] sm:tracking-[0.5em] rounded-xl sm:rounded-2xl transition-all active:scale-95 shadow-[0_20px_60px_rgba(0,163,255,0.2)] disabled:opacity-50 ${isSaved ? 'bg-emerald-500 text-white' : 'bg-white text-[#00a3ff] hover:bg-neutral-100'}`}
+                      className={`flex-2 flex items-center justify-center gap-2 sm:gap-3 py-4 text-[10px] sm:text-sm font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] rounded-xl sm:rounded-2xl transition-all active:scale-95 shadow-[0_20px_60px_rgba(0,163,255,0.2)] disabled:opacity-50 ${isSaved ? 'bg-emerald-500 text-white' : 'bg-white text-[#00a3ff] hover:bg-neutral-100'}`}
                     >
                       {isSaving ? (
                         <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#00a3ff] border-t-transparent" />
