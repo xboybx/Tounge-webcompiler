@@ -968,11 +968,10 @@ export default function Home() {
         <div className="flex items-center gap-2 text-white font-bold uppercase tracking-widest">
           <button
             onClick={toggleChat}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#06B6D4] text-[#06B6D4] shadow-[0_0_15px_rgba(168,85,247,0.2)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${isChatOpen ? 'bg-[#06B6D4]/10 text-[#06B6D4] shadow-[0_0_20px_rgba(6,182,212,0.1)]' : 'hover:bg-white/5 text-[#888] hover:text-[#FFD700]'}`}
           >
-            <Sparkles size={24} strokeWidth={2} className={isChatOpen ? "fill-[#06B6D4]" : ""} />
-            <span className="text-[11px] uppercase tracking-widest font-bold pt-2 mt-4"
-              style={{ marginRight: "10px" }}>Ask TOUNGE</span>
+            <Sparkles size={20} className={isChatOpen ? "fill-[#06B6D4]" : ""} />
+            <span className="text-[10px] uppercase tracking-[0.2em] font-black">Ask TOUNGE</span>
           </button>
         </div>
       </footer>
