@@ -322,11 +322,7 @@ export default function ChatSidebar() {
                         animate={{ opacity: 1 }}
                         className="pl-2"
                     >
-                        <span className="text-[10px] text-[#06B6D4] font-mono animate-pulse uppercase tracking-wider flex items-center gap-2">
-                            <span className="relative flex h-2 w-2">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#06B6D4] opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#06B6D4]"></span>
-                            </span>
+                        <span className="text-[10px] font-mono uppercase tracking-[0.2em] bg-linear-to-r from-white/20 via-white to-white/20 bg-size-[200%_auto] bg-clip-text text-transparent animate-shimmer">
                             Thinking...
                         </span>
                     </motion.div>
@@ -339,7 +335,7 @@ export default function ChatSidebar() {
 
             >
                 <form onSubmit={handleSubmit} className="relative group w-full h-16">
-                    <div className="relative flex items-center h-16 bg-[#111] border border-[#353333] rounded-xl transition-all duration-300 focus-within:border-[#06B6D4]/50 focus-within:bg-[#1a1a1a] p-1">
+                    <div className="relative flex items-center h-16 bg-[#111] border border-[#353333] rounded-xl transition-all duration-300 focus-within:border-[#06B6D4]/50 focus-within:bg-[#1a1a1a] px-2">
                         <input
                             type="text"
                             value={query}

@@ -1,4 +1,3 @@
-import { GoogleGenAI } from "@google/genai";
 import OpenAI from 'openai';
 import { TandSAnalyzer, CHAT_SYSTEM_PROMPT } from "./prompts";
 
@@ -22,14 +21,10 @@ const openRouter = new OpenAI({
  * Strategy: We use a wide "Model Rail" to failover across different providers 
  * (Google, Meta, Mistral, Qwen) to maximize chances of finding a free slot.
  */
-const FREE_MODELS = [
-
+const lmodels = [
+    "z-ai/glm-4.5-air:free",
     "stepfun/step-3.5-flash:free",
     "arcee-ai/trinity-large-preview:free",
-    "liquid/lfm-2.5-1.2b-thinking:free",
-    "allenai/molmo-2-8b:free",
-    "qwen/qwen3-coder:free",
-    "meta-llama/llama-3.3-70b-instruct:free",
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
@@ -40,62 +35,19 @@ export function getAnalysisSystemPrompt(language: string) {
 /**
  * Robust AI Service using OpenRouter with Model Fallback.
  */
-// Initialize Gemini Client (Official SDK)
-const gemini = process.env.GEMINI_API_KEY ? new GoogleGenAI({
-    apiKey: process.env.GEMINI_API_KEY
-}) : null;
-
-/**
- * Robust AI Service:
- * 1. 🚀 Priority: Gemini Pro (User's Personal Key) - Reliable, Fast, High Limits.
- * 2. 🛡️ Fallback: OpenRouter (Community Free Tier) - Shared limits, might be 429'd.
- */
 export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string, onStatus?: (status: string) => void): Promise<string> {
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
     const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
 
-    // --- 1. Try Gemini (If Configured) ---
-    if (gemini) {
-        try {
-            console.log(`[AI Service] 💎 Using Gemini Native SDK...`);
-            onStatus?.("Syncing with Tounge Neural Net (Gemini Pro)...");
-
-            // Combine prompts for the simple GenerateContent API
-            const combinedPrompt = `${systemPrompt}\n\nUser Input:\n${userPrompt}`;
-
-            const response = await gemini.models.generateContent({
-                model: "gemini-1.5-flash",
-                contents: combinedPrompt,
-            });
-
-            // Handle potential variation in SDK response structure
-            const text = response.text;
-
-            if (text) {
-                console.log(`[AI Service] ✅ Gemini Success`);
-                onStatus?.("Neural Net handshake successful. Processing data...");
-                return text;
-            }
-        } catch (error: unknown) {
-            // Check for specific Gemini error properties
-            const err = error instanceof Error ? error.message : String(error);
-            const status = (error as any)?.status || (error as any)?.response?.status || 'Unknown Status';
-
-            console.error(`[AI Service] ⚠️ Gemini Failed [${status}]: ${err}`);
-            onStatus?.(`Gemini connection lost [${status}]. Rerouting...`);
-        }
-    }
-
-    // --- 2. Fallback to OpenRouter ---
+    // --- 1. Use OpenRouter Swarm ---
     if (!process.env.OPENROUTER_API_KEY) {
-        // If neither key is present, we must fail
-        if (!gemini) throw new Error("MISSING_API_KEYS: Please set GEMINI_API_KEY or OPENROUTER_API_KEY");
+        throw new Error("MISSING_API_KEY: Please set OPENROUTER_API_KEY");
     }
 
     let lastErrorMessage = "All models returned empty response";
-    onStatus?.("Engaging backup nodes (OpenRouter Swarm)...");
+    onStatus?.("Engaging neural nodes (OpenRouter Swarm)...");
 
-    for (const model of FREE_MODELS) {
+    for (const model of lmodels) {
         try {
             console.log(`[AI Service] 🤖 Attempting OpenRouter: ${model}...`);
             onStatus?.(`Routing request to node: ${model.split('/')[1]}...`);
@@ -171,43 +123,14 @@ export async function* streamAI(input: string | { role: string, content: string 
         lastUserMessage = messages[messages.length - 1].content;
     }
 
-    // --- 1. Try Gemini (If Configured) ---
-    if (gemini) {
-        try {
-            console.log(`[AI Stream] 💎 Using Gemini...`);
-
-            // For Gemini simple generation, we'll format the history as a script
-            // This is robust for the simple generateContentStream method
-            const historyStr = messages.map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`).join('\n\n');
-            const combinedPrompt = `${systemPrompt}\n\nConversation History:\n${historyStr}`;
-
-            const result = await gemini.models.generateContentStream({
-                model: "gemini-1.5-flash",
-                contents: combinedPrompt,
-            });
-
-            for await (const chunk of result) {
-                // Handle different SDK versions where text might be a method or property
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const val = (chunk as any).text;
-                const chunkText = typeof val === 'function' ? val.call(chunk) : val;
-
-                if (chunkText) yield chunkText;
-            }
-            return;
-        } catch (error: unknown) {
-            console.error(`[AI Stream] ⚠️ Gemini Failed:`, error);
-        }
-    }
-
-    // --- 2. Fallback to OpenRouter ---
-    if (!process.env.OPENROUTER_API_KEY && !gemini) {
-        throw new Error("MISSING_API_KEYS: Please set GEMINI_API_KEY or OPENROUTER_API_KEY");
+    // --- 1. Use OpenRouter Swarm ---
+    if (!process.env.OPENROUTER_API_KEY) {
+        throw new Error("MISSING_API_KEY: Please set OPENROUTER_API_KEY");
     }
 
     let lastErrorMessage = "All models returned empty response";
 
-    for (const model of FREE_MODELS) {
+    for (const model of lmodels) {
         try {
             console.log(`[AI Stream] 🤖 Attempting OpenRouter: ${model}...`);
 

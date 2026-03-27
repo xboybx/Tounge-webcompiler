@@ -1,0 +1,1 @@
+-reduce the ai respojnse lag in chat and also the t and s analyzer
