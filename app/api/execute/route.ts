@@ -1,135 +1,180 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeComplexity } from '@/lib/analyzer';
 
-// ============================================================
-// WANDBOX API (Active - Free, No API key required)
-// Docs: https://wandbox.org/
-// API:  POST https://wandbox.org/api/compile.json
-// ============================================================
-const WANDBOX_API = 'https://wandbox.org/api/compile.json';
+// --- TYPES ---
+interface ExecutionResult {
+    output: string | null;
+    error?: string | null;
+    memory?: string | number | null;
+    cpuTime?: string | number | null;
+    provider: string;
+}
 
-// Wandbox compiler names (verified from https://wandbox.org/api/list.json)
-const WANDBOX_LANGUAGE_MAP: Record<string, { compiler: string; filename: string }> = {
-    javascript: { compiler: 'nodejs-20.17.0', filename: 'prog.js' },
-    typescript: { compiler: 'typescript-5.6.2', filename: 'prog.ts' },
-    python: { compiler: 'cpython-3.12.7', filename: 'prog.py' },
-    java: { compiler: 'openjdk-jdk-22+36', filename: 'prog.java' },
-    cpp: { compiler: 'gcc-13.2.0', filename: 'prog.cc' },
-    go: { compiler: 'go-1.23.2', filename: 'prog.go' },
-    rust: { compiler: 'rust-1.82.0', filename: 'prog.rs' },
-    csharp: { compiler: 'dotnetcore-8.0.402', filename: 'prog.cs' },
-    php: { compiler: 'php-8.3.12', filename: 'prog.php' },
+// --- CONFIGURATION ---
+const JDOODLE_URL = 'https://api.jdoodle.com/v1/execute';
+const PAIZA_CREATE_URL = 'https://api.paiza.io/v1/runners/create';
+const PAIZA_STATUS_URL = 'https://api.paiza.io/v1/runners/get_details';
+
+// Optimized JDoodle Map for 2026
+const JDOODLE_MAP: Record<string, { lang: string; ver: string }> = {
+    javascript: { lang: 'nodejs', ver: '5' },
+    typescript: { lang: 'typescript', ver: '3' },
+    python: { lang: 'python3', ver: '4' },
+    java: { lang: 'java', ver: '4' },
+    cpp: { lang: 'cpp17', ver: '1' }, 
+    go: { lang: 'go', ver: '4' },
+    rust: { lang: 'rust', ver: '4' },
+    csharp: { lang: 'csharp', ver: '4' },
+    php: { lang: 'php', ver: '4' },
 };
 
-// ============================================================
-// PISTON API (Commented out - Now requires whitelist approval)
-// As of 2/15/2026, public access is restricted.
-// To re-enable: contact EngineerMan on Discord, get a token,
-// add PISTON_API_KEY to .env, and uncomment the block below.
-// ============================================================
-//
-// const PISTON_API = 'https://emkc.org/api/v2/piston/execute';
-//
-// const PISTON_LANGUAGE_MAP: Record<string, { language: string; version: string }> = {
-//     javascript: { language: 'javascript', version: '18.15.0' },
-//     typescript: { language: 'typescript', version: '5.0.3'   },
-//     python:     { language: 'python',     version: '3.10.0'  },
-//     java:       { language: 'java',        version: '15.0.2' },
-//     cpp:        { language: 'cpp',         version: '10.2.0' },
-//     go:         { language: 'go',          version: '1.16.2' },
-//     rust:       { language: 'rust',        version: '1.68.2' },
-//     csharp:     { language: 'csharp',      version: '6.12.0' },
-//     php:        { language: 'php',         version: '8.2.3'  },
-// };
-//
-// async function executeWithPiston(code: string, language: string) {
-//     const pistonConfig = PISTON_LANGUAGE_MAP[language];
-//     const headers: HeadersInit = { 'Content-Type': 'application/json' };
-//     if (process.env.PISTON_API_KEY) {
-//         headers['Authorization'] = `Bearer ${process.env.PISTON_API_KEY}`;
-//     }
-//     const response = await fetch(PISTON_API, {
-//         method: 'POST',
-//         headers,
-//         body: JSON.stringify({
-//             language: pistonConfig.language,
-//             version:  pistonConfig.version,
-//             files:    [{ content: code }],
-//         }),
-//     });
-//     if (!response.ok) throw new Error(`Piston returned ${response.status}`);
-//     const result = await response.json();
-//     return { output: result.run.stdout, error: result.run.stderr };
-// }
+const PAIZA_MAP: Record<string, string> = {
+    javascript: 'javascript',
+    typescript: 'typescript',
+    python: 'python3',
+    java: 'java',
+    cpp: 'cpp',
+    go: 'go',
+    rust: 'rust',
+    csharp: 'csharp',
+    php: 'php',
+};
+
+// --- EXECUTION HELPERS ---
+
+/**
+ * Execute code using JDoodle API
+ * Fallback to null if limit reached or credentials missing
+ */
+async function executeWithJDoodle(code: string, language: string): Promise<ExecutionResult | null> {
+    const config = JDOODLE_MAP[language];
+    if (!config || !process.env.JDOODLE_CLIENT_ID) return null;
+
+    try {
+        const response = await fetch(JDOODLE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                clientId: process.env.JDOODLE_CLIENT_ID,
+                clientSecret: process.env.JDOODLE_CLIENT_SECRET,
+                script: code,
+                language: config.lang,
+                versionIndex: config.ver,
+            }),
+        });
+
+        const data = await response.json();
+
+        // Handle error codes (401/429/etc)
+        if (data.statusCode === 401 || data.statusCode === 429 || !response.ok) {
+            return null;
+        }
+
+        return {
+            output: data.output || '',
+            error: null,
+            memory: data.memory ?? 'N/A',
+            cpuTime: data.cpuTime ?? 'N/A',
+            provider: 'JDoodle'
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
+ * Execute code using Paiza.io API (Guest Mode)
+ */
+async function executeWithPaiza(code: string, language: string): Promise<ExecutionResult | null> {
+    const lang = PAIZA_MAP[language];
+    if (!lang) return null;
+
+    try {
+        // 1. Create runner
+        const createRes = await fetch(`${PAIZA_CREATE_URL}?source_code=${encodeURIComponent(code)}&language=${lang}&api_key=guest`, {
+            method: 'POST'
+        });
+        const createData = await createRes.json();
+        
+        if (!createData.id) return null;
+
+        // 2. Intelligent Polling (Wait for job completion)
+        let statusData: any;
+        let attempts = 0;
+        const maxAttempts = 5;
+
+        do {
+            // Wait slightly longer each time
+            await new Promise(resolve => setTimeout(resolve, attempts === 0 ? 1000 : 1500));
+            
+            const statusRes = await fetch(`${PAIZA_STATUS_URL}?id=${createData.id}&api_key=guest`);
+            statusData = await statusRes.json();
+            
+            attempts++;
+        } while (statusData.status !== 'completed' && attempts < maxAttempts);
+
+        if (statusData.status !== 'completed') return null;
+
+        const output = statusData.stdout || '';
+        const error = statusData.stderr || statusData.build_stderr || '';
+
+        return {
+            output: output || (error ? null : 'No output'),
+            error: error || null,
+            memory: 'N/A',
+            cpuTime: 'N/A',
+            provider: 'Paiza.io'
+        };
+    } catch (e) {
+        return null;
+    }
+}
+
+// --- MAIN ROUTE ---
 
 export async function POST(request: NextRequest) {
     try {
         const { code, language } = await request.json();
-
-        if (!code || !language) {
-            return NextResponse.json(
-                { success: false, error: 'Code and language are required' },
-                { status: 400 }
-            );
-        }
-
-        const wandboxConfig = WANDBOX_LANGUAGE_MAP[language];
-        if (!wandboxConfig) {
-            return NextResponse.json(
-                { success: false, error: `Language ${language} is not supported for execution` },
-                { status: 400 }
-            );
-        }
-
         const complexity = analyzeComplexity(code, language);
         const startTime = Date.now();
 
-        // Execute with Wandbox
-        const response = await fetch(WANDBOX_API, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                compiler: wandboxConfig.compiler,
-                code,
-                filename: wandboxConfig.filename,
-                'save': false,
-            }),
-        });
+        let result: ExecutionResult | null = null;
 
-        if (!response.ok) {
-            const errorBody = await response.text();
-            console.error('Wandbox API Error:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: errorBody,
-            });
-            throw new Error(`Execution engine returned ${response.status}: ${response.statusText}`);
+        // Step 1: Try JDoodle (Fast)
+        result = await executeWithJDoodle(code, language);
+
+        // Step 2: Fallback to Paiza if JDoodle fails or limit hit
+        if (!result) {
+            console.log(`[EXEC] Switching to Paiza for ${language} execution`);
+            result = await executeWithPaiza(code, language);
         }
 
-        const result = await response.json();
         const executionTime = Date.now() - startTime;
 
-        // Wandbox returns: program_output, compiler_error, program_error
-        const output = result.program_output || '';
-        const compilerError = result.compiler_error || '';
-        const programError = result.program_error || '';
-        const error = compilerError || programError || null;
+        if (!result) {
+            return NextResponse.json(
+                { success: false, error: 'All execution engines failed. Please try again later.' },
+                { status: 500 }
+            );
+        }
 
         return NextResponse.json({
             success: true,
-            output: output || (error ? null : 'No output'),
-            error: error || null,
+            output: result.output,
+            error: result.error || null,
             executionTime,
             language,
             metadata: {
-                complexity
+                complexity,
+                provider: result.provider,
+                memory: result.memory,
+                cpuTime: result.cpuTime
             }
         });
 
-    } catch (error: unknown) {
-        console.error('Execution error:', error);
+    } catch (error: any) {
         return NextResponse.json(
-            { success: false, error: error instanceof Error ? error.message : 'System failed to execute code' },
+            { success: false, error: error.message || 'System error during execution' },
             { status: 500 }
         );
     }
