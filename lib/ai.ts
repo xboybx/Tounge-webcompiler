@@ -4,7 +4,7 @@ import { TandSAnalyzer, CHAT_SYSTEM_PROMPT } from "./prompts";
 
 // Initialize OpenRouter Client
 const openRouter = new OpenAI({
-    baseURL: "https://openrouter.ai/api/v1",
+    baseURL: "https://api.clod.io/v1",
     apiKey: process.env.OPENROUTER_API_KEY || 'dummy_key',
     defaultHeaders: {
         "HTTP-Referer": "https://Tounge.app",
@@ -21,10 +21,16 @@ const openRouter = new OpenAI({
  * Strategy: We use a wide "Model Rail" to failover across different providers 
  * (Google, Meta, Mistral, Qwen) to maximize chances of finding a free slot.
  */
+// const lmodels = [
+//     "z-ai/glm-4.5-air:free",
+//     "stepfun/step-3.5-flash:free",
+//     "arcee-ai/trinity-large-preview:free",
+// ];
+
 const lmodels = [
-    "z-ai/glm-4.5-air:free",
-    "stepfun/step-3.5-flash:free",
-    "arcee-ai/trinity-large-preview:free",
+    "GLM 4.5 Air",
+    "Meta Llama 3.3 70B Instruct",
+    "Trinity Mini",
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
