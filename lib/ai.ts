@@ -28,9 +28,8 @@ const openRouter = new OpenAI({
 // ];
 
 const lmodels = [
-    "GLM 4.5 Air",
-    "Meta Llama 3.3 70B Instruct",
     "Trinity Mini",
+    "Meta Llama 3.3 70B Instruct",
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
