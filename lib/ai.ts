@@ -12,20 +12,7 @@ const openRouter = new OpenAI({
     }
 });
 
-/**
- * 💡 WHY ARE FREE MODELS FAILING?
- * OpenRouter's :free models share a global daily quota across all users. 
- * When it says "429 Rate limit exceeded: free-models-per-day", it means the entire 
- * community has exhausted the free tokens for that specific model/provider.
- * 
- * Strategy: We use a wide "Model Rail" to failover across different providers 
- * (Google, Meta, Mistral, Qwen) to maximize chances of finding a free slot.
- */
-// const lmodels = [
-//     "z-ai/glm-4.5-air:free",
-//     "stepfun/step-3.5-flash:free",
-//     "arcee-ai/trinity-large-preview:free",
-// ];
+
 
 const lmodels = [
     "groq/compound",
