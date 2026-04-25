@@ -13,8 +13,9 @@ export async function POST(req: Request) {
             async start(controller) {
                 try {
                     // 1. Check for API Keys
-                    if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
-                        let reply = "⚠️ **Offline Mode**: Please set `GEMINI_API_KEY` or `OPENROUTER_API_KEY` in your `.env` file to use the AI Assistant.";
+                    if (!process.env.AI_API_KEY) {
+
+                        let reply = "⚠️ **Offline Mode**: Please set API KEY in your `.env` file to use the AI Assistant.";
 
                         // Extract latest text for offline checks
                         const lastText = Array.isArray(chatInput)

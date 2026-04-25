@@ -23,12 +23,12 @@ export async function POST(req: Request) {
                 await writer.write(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
             };
 
-            if (!process.env.OPENROUTER_API_KEY && !process.env.GEMINI_API_KEY) {
+            if (!process.env.AI_API_KEY) {
                 await sendEvent({
                     result: {
                         time: "Key Missing",
                         space: "-",
-                        explanation: "Please add your GEMINI_API_KEY or OPENROUTER_API_KEY to use AI Analysis.",
+                        explanation: "Please add your GEMINI_API_KEY or API_KEY to use AI Analysis.",
                         suggestions: ["Configuration Required"]
                     }
                 });

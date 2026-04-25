@@ -4,8 +4,8 @@ import { TandSAnalyzer, CHAT_SYSTEM_PROMPT } from "./prompts";
 
 // Initialize OpenRouter Client
 const openRouter = new OpenAI({
-    baseURL: "https://api.clod.io/v1",
-    apiKey: process.env.OPENROUTER_API_KEY || 'dummy_key',
+    baseURL: process.env.AI_BASE_URL,
+    apiKey: process.env.AI_API_KEY || 'dummy_key',
     defaultHeaders: {
         "HTTP-Referer": "https://Tounge.app",
         "X-Title": "Tounge",
@@ -28,8 +28,8 @@ const openRouter = new OpenAI({
 // ];
 
 const lmodels = [
-    "Trinity Mini",
-    "Meta Llama 3.3 70B Instruct",
+    "groq/compound",
+    "openai/gpt-oss-120b"
 ];
 
 export function getAnalysisSystemPrompt(language: string) {
@@ -41,12 +41,13 @@ export function getAnalysisSystemPrompt(language: string) {
  * Robust AI Service using OpenRouter with Model Fallback.
  */
 export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string, onStatus?: (status: string) => void): Promise<string> {
+
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
     const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
 
     // --- 1. Use OpenRouter Swarm ---
-    if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error("MISSING_API_KEY: Please set OPENROUTER_API_KEY");
+    if (!process.env.AI_API_KEY) {
+        throw new Error("MISSING_API_KEY: Please set API_KEY");
     }
 
     let lastErrorMessage = "All models returned empty response";
@@ -72,6 +73,7 @@ export async function askAI(message: string, contextCode?: string, systemPromptO
                 return content;
             }
         } catch (error: unknown) {
+
             // Extract the actual error message and status code from OpenRouter API
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const apiError = (error as any).error?.message || (error as any).message || "Unknown error";
@@ -129,8 +131,8 @@ export async function* streamAI(input: string | { role: string, content: string 
     }
 
     // --- 1. Use OpenRouter Swarm ---
-    if (!process.env.OPENROUTER_API_KEY) {
-        throw new Error("MISSING_API_KEY: Please set OPENROUTER_API_KEY");
+    if (!process.env.AI_API_KEY) {
+        throw new Error("MISSING_API_KEY: Please set AI_API_KEY in your .env file");
     }
 
     let lastErrorMessage = "All models returned empty response";
