@@ -145,7 +145,6 @@ export async function* streamAI(input: string | { role: string, content: string 
                 model: model,
                 messages: [
                     { role: "system", content: systemPrompt },
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     ...messages as any
                 ],
                 stream: true,
