@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Poppins, JetBrains_Mono } from "next/font/google";
 import { ChatProvider } from "@/components/providers/ChatProvider";
 import "./globals.css";
+import Script from "next/script";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,7 +17,7 @@ const geistMono = Geist_Mono({
 const jetbrainsMono = JetBrains_Mono({
   variable: "--font-jetbrains-mono",
   subsets: ["latin"],
-}); 
+});
 
 const poppins = Poppins({
   variable: "--font-poppins",
@@ -53,6 +54,8 @@ export default function RootLayout({
         <ChatProvider>
           {children}
         </ChatProvider>
+        <Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9643914010552190"
+          crossOrigin="anonymous" strategy="afterInteractive"></Script>
       </body>
     </html>
   );
