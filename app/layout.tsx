@@ -48,14 +48,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <head>
+        <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9643914010552190"
+          crossOrigin="anonymous" strategy="beforeInteractive"></script>
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${poppins.variable} ${jetbrainsMono.variable} antialiased`}
       >
         <ChatProvider>
           {children}
         </ChatProvider>
-        <Script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-9643914010552190"
-          crossOrigin="anonymous" strategy="afterInteractive"></Script>
       </body>
     </html>
   );
