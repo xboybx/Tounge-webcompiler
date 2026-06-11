@@ -24,13 +24,38 @@ export function getAnalysisSystemPrompt(language: string) {
 }
 
 
+function estimateTokens(text: string): number {
+    return Math.ceil(text.length / 3.5);
+}
+
+function truncateToTokens(text: string, maxTokens: number): string {
+    const maxChars = Math.floor(maxTokens * 3.5);
+    if (text.length <= maxChars) return text;
+    return text.slice(0, maxChars) + "\n\n...[Code context truncated to fit token limits]...";
+}
+
 /**
  * Robust AI Service using OpenRouter with Model Fallback.
  */
 export async function askAI(message: string, contextCode?: string, systemPromptOverride?: string, onStatus?: (status: string) => void): Promise<string> {
 
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
-    const userPrompt = contextCode ? `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${message}` : message;
+    
+    // Budgeting: Keep prompt well under Groq limit
+    const MAX_TOTAL_TOKENS = 15000;
+    const systemPromptTokens = estimateTokens(systemPrompt);
+    const messageTokens = estimateTokens(message);
+    const reservedTokens = systemPromptTokens + messageTokens + 500;
+    const availableTokensForCode = Math.max(0, MAX_TOTAL_TOKENS - reservedTokens);
+
+    let userPrompt = message;
+    if (contextCode) {
+        let processedCode = contextCode;
+        if (estimateTokens(contextCode) > availableTokensForCode) {
+            processedCode = truncateToTokens(contextCode, availableTokensForCode);
+        }
+        userPrompt = `Code Context:\n\`\`\`\n${processedCode}\n\`\`\`\n\nTask: ${message}`;
+    }
 
     // --- 1. Use OpenRouter Swarm ---
     if (!process.env.AI_API_KEY) {
@@ -92,29 +117,56 @@ export async function* streamAI(input: string | { role: string, content: string 
     const systemPrompt = systemPromptOverride || CHAT_SYSTEM_PROMPT;
 
     // Normalize input to history array and last user message
-    let messages: { role: string, content: string }[] = [];
+    let rawMessages: { role: string, content: string }[] = [];
     let lastUserMessage = "";
 
     if (typeof input === 'string') {
-        messages = [{ role: 'user', content: input }];
+        rawMessages = [{ role: 'user', content: input }];
         lastUserMessage = input;
     } else {
-        messages = input;
-        const last = messages[messages.length - 1];
+        rawMessages = input;
+        const last = rawMessages[rawMessages.length - 1];
         if (last && last.role === 'user') lastUserMessage = last.content;
     }
 
-    // Enhance the LAST user message with code context if provided
-    // We only attach context to the latest prompt to save tokens and avoid confusion
-    if (contextCode) {
-        messages = messages.map((m, i) => {
-            if (i === messages.length - 1 && m.role === 'user') {
-                return { ...m, content: `Code Context:\n\`\`\`\n${contextCode}\n\`\`\`\n\nTask: ${m.content}` };
-            }
-            return m;
-        });
-        // Update lastUserMessage for string-based prompts
-        lastUserMessage = messages[messages.length - 1].content;
+    // Budgeting: Keep request well under Groq limit
+    const MAX_TOTAL_TOKENS = 15000;
+    const systemPromptTokens = estimateTokens(systemPrompt);
+
+    // Enhance and budget the latest user message
+    let lastMsg = rawMessages[rawMessages.length - 1];
+    let lastMsgContent = lastMsg ? lastMsg.content : "";
+
+    if (contextCode && lastMsg && lastMsg.role === 'user') {
+        const reservedTokens = systemPromptTokens + estimateTokens(lastUserMessage) + 500;
+        const availableTokensForCode = Math.max(0, MAX_TOTAL_TOKENS - reservedTokens);
+        
+        let processedCode = contextCode;
+        if (estimateTokens(contextCode) > availableTokensForCode) {
+            processedCode = truncateToTokens(contextCode, availableTokensForCode);
+        }
+        lastMsgContent = `Code Context:\n\`\`\`\n${processedCode}\n\`\`\`\n\nTask: ${lastUserMessage}`;
+    }
+
+    // Build final messages list starting from the latest message and working backwards
+    const finalMessages: { role: string, content: string }[] = [];
+    if (lastMsg) {
+        finalMessages.push({ role: lastMsg.role, content: lastMsgContent });
+    }
+
+    let tokensUsed = systemPromptTokens + estimateTokens(lastMsgContent);
+
+    // Add previous history backwards while within budget
+    for (let i = rawMessages.length - 2; i >= 0; i--) {
+        const msg = rawMessages[i];
+        const msgTokens = estimateTokens(msg.content);
+        if (tokensUsed + msgTokens < MAX_TOTAL_TOKENS) {
+            finalMessages.unshift(msg); // Prepend to keep chronological order
+            tokensUsed += msgTokens;
+        } else {
+            console.log(`[AI Stream] Token limit reached. Dropping ${i + 1} older message(s) from history.`);
+            break;
+        }
     }
 
     // --- 1. Use OpenRouter Swarm ---
@@ -132,7 +184,7 @@ export async function* streamAI(input: string | { role: string, content: string 
                 model: model,
                 messages: [
                     { role: "system", content: systemPrompt },
-                    ...messages as any
+                    ...finalMessages as any
                 ],
                 stream: true,
             });
